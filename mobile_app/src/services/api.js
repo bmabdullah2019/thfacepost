@@ -1,194 +1,133 @@
 /**
  * The FacePost Native API Client
- * Uses CapacitorHttp for native Android HTTP requests (bypassing browser CORS sandbox)
- * and seamless fallback to standard fetch.
+ * Uses dual-route strategy (Clean URL + Direct api.php fallback)
+ * Powered by CapacitorHttp for 100% native Android HTTP execution (No CORS issues).
  */
 import { CapacitorHttp } from '@capacitor/core';
 
-const API_BASE_URL = 'https://thefacepost.com/api/v1.0';
+const PRIMARY_API = 'https://thefacepost.com/api/v1.0';
+const DIRECT_API = 'https://thefacepost.com/api.php';
 
-export async function loginWithServer(username, password) {
+async function nativePost(routePath, dataPayload) {
+  // Try clean URL first
   try {
-    const options = {
-      url: `${API_BASE_URL}/auth/login`,
+    const res = await CapacitorHttp.post({
+      url: `${PRIMARY_API}/${routePath}`,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      data: { username, password }
-    };
+      data: dataPayload
+    });
 
-    const response = await CapacitorHttp.post(options);
-    let data = response.data;
-
-    if (typeof data === 'string') {
-      try {
-        data = JSON.parse(data);
-      } catch (e) {
-        // Response is HTML from server
-        return {
-          status: 'error',
-          message: 'TheFacePostApi component is not yet uploaded to the live server (thefacepost.com). Please upload the TheFacePostApi component to cPanel to enable live login.'
-        };
-      }
+    let resData = res.data;
+    if (typeof resData === 'string') {
+      try { resData = JSON.parse(resData); } catch (e) { resData = null; }
     }
 
-    if (response.status === 200 && data && data.status === 'success') {
-      return data;
+    if (res.status === 200 && resData && resData.status === 'success') {
+      return resData;
     }
-
-    return {
-      status: 'error',
-      message: data?.message || 'Invalid username or password. Please check your credentials.'
-    };
+    if (resData && resData.message) {
+      return resData;
+    }
   } catch (err) {
-    console.warn('Native Login request error:', err);
-    return {
-      status: 'error',
-      message: 'Network connection failed. Please check your internet connection.'
-    };
+    console.warn('Primary API attempt failed, trying direct api.php fallback...', err);
   }
+
+  // Direct api.php fallback
+  try {
+    const res = await CapacitorHttp.post({
+      url: `${DIRECT_API}?route=${routePath}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      data: dataPayload
+    });
+
+    let resData = res.data;
+    if (typeof resData === 'string') {
+      try { resData = JSON.parse(resData); } catch (e) { resData = null; }
+    }
+
+    if (resData) {
+      return resData;
+    }
+  } catch (fallbackErr) {
+    console.warn('Direct api.php fallback failed:', fallbackErr);
+  }
+
+  return {
+    status: 'error',
+    message: 'Could not connect to live server. Please make sure api.php or TheFacePostApi is present on the server.'
+  };
+}
+
+async function nativeGet(routePath) {
+  try {
+    const res = await CapacitorHttp.get({
+      url: `${PRIMARY_API}/${routePath}`,
+      headers: { 'Accept': 'application/json' }
+    });
+    let resData = res.data;
+    if (typeof resData === 'string') {
+      try { resData = JSON.parse(resData); } catch (e) { resData = null; }
+    }
+    if (resData && resData.status === 'success') {
+      return resData;
+    }
+  } catch (e) {}
+
+  try {
+    const res = await CapacitorHttp.get({
+      url: `${DIRECT_API}?route=${routePath}`,
+      headers: { 'Accept': 'application/json' }
+    });
+    let resData = res.data;
+    if (typeof resData === 'string') {
+      try { resData = JSON.parse(resData); } catch (e) { resData = null; }
+    }
+    if (resData && resData.status === 'success') {
+      return resData;
+    }
+  } catch (e) {}
+
+  return null;
+}
+
+export async function loginWithServer(username, password) {
+  return await nativePost('auth/login', { username, password });
 }
 
 export async function registerWithServer(userData) {
-  try {
-    const options = {
-      url: `${API_BASE_URL}/auth/register`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      data: userData
-    };
-
-    const response = await CapacitorHttp.post(options);
-    let data = response.data;
-
-    if (typeof data === 'string') {
-      try {
-        data = JSON.parse(data);
-      } catch (e) {
-        return {
-          status: 'error',
-          message: 'TheFacePostApi is not active on the live server yet. Please upload the component to cPanel.'
-        };
-      }
-    }
-
-    if (response.status === 200 && data && data.status === 'success') {
-      return data;
-    }
-
-    return {
-      status: 'error',
-      message: data?.message || 'Registration failed. Please try again.'
-    };
-  } catch (err) {
-    console.warn('Native Registration request error:', err);
-    return {
-      status: 'error',
-      message: 'Network connection failed. Please check your internet connection.'
-    };
-  }
+  return await nativePost('auth/register', userData);
 }
 
 export async function forgotPasswordWithServer(identifier) {
-  try {
-    const options = {
-      url: `${API_BASE_URL}/auth/forgot_password`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      data: { email: identifier, username: identifier }
-    };
-
-    const response = await CapacitorHttp.post(options);
-    let data = response.data;
-
-    if (typeof data === 'string') {
-      try {
-        data = JSON.parse(data);
-      } catch (e) {
-        return {
-          status: 'error',
-          message: 'The API is not active on the live server yet.'
-        };
-      }
-    }
-
-    if (response.status === 200 && data && data.status === 'success') {
-      return data;
-    }
-
-    return {
-      status: 'error',
-      message: data?.message || 'No account found with that email or username.'
-    };
-  } catch (err) {
-    return {
-      status: 'error',
-      message: 'Network connection failed. Please check your internet connection.'
-    };
-  }
+  return await nativePost('auth/forgot_password', { email: identifier, username: identifier });
 }
 
 export async function fetchFeedPosts() {
-  try {
-    const options = {
-      url: `${API_BASE_URL}/feed`,
-      headers: { 'Accept': 'application/json' }
-    };
-    const response = await CapacitorHttp.get(options);
-    let data = response.data;
-    if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch (e) {}
-    }
-    if (data && data.status === 'success' && Array.isArray(data.posts)) {
-      return data.posts;
-    }
-  } catch (err) {
-    console.warn('Live feed fetch failed, utilizing cached feed:', err);
+  const result = await nativeGet('feed');
+  if (result && Array.isArray(result.posts)) {
+    return result.posts;
   }
   return null;
 }
 
 export async function fetchLiveStories() {
-  try {
-    const options = {
-      url: `${API_BASE_URL}/stories`,
-      headers: { 'Accept': 'application/json' }
-    };
-    const response = await CapacitorHttp.get(options);
-    let data = response.data;
-    if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch (e) {}
-    }
-    if (data && data.status === 'success' && Array.isArray(data.stories)) {
-      return data.stories;
-    }
-  } catch (err) {
-    console.warn('Live stories fetch failed, utilizing cached stories:', err);
+  const result = await nativeGet('stories');
+  if (result && Array.isArray(result.stories)) {
+    return result.stories;
   }
   return null;
 }
 
 export async function fetchLiveReels() {
-  try {
-    const options = {
-      url: `${API_BASE_URL}/reels`,
-      headers: { 'Accept': 'application/json' }
-    };
-    const response = await CapacitorHttp.get(options);
-    let data = response.data;
-    if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch (e) {}
-    }
-    if (data && data.status === 'success' && Array.isArray(data.reels)) {
-      return data.reels;
-    }
-  } catch (err) {
-    console.warn('Live reels fetch failed, utilizing cached reels:', err);
+  const result = await nativeGet('reels');
+  if (result && Array.isArray(result.reels)) {
+    return result.reels;
   }
   return null;
 }
