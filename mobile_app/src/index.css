@@ -703,34 +703,37 @@ body {
   position: relative;
 }
 
-.action-bar-btn {
+.action-bar-btn,
+.post-action-btn {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 8px 0;
-  border: none;
-  background: none;
+  border: none !important;
+  background: transparent !important;
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  outline: none;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.action-bar-btn:active {
-  background-color: var(--bg-hover);
+.action-bar-btn:active,
+.post-action-btn:active {
+  background-color: var(--bg-hover) !important;
 }
 
-.action-bar-btn.reacted-like { color: #1877f2; }
-.action-bar-btn.reacted-love { color: #f33e5b; }
-.action-bar-btn.reacted-care { color: #f7b125; }
-.action-bar-btn.reacted-haha { color: #f7b125; }
-.action-bar-btn.reacted-wow { color: #f7b125; }
-.action-bar-btn.reacted-sad { color: #f7b125; }
-.action-bar-btn.reacted-angry { color: #e41e3f; }
+.action-bar-btn.reacted-like, .post-action-btn.reacted-like { color: #1877f2; }
+.action-bar-btn.reacted-love, .post-action-btn.reacted-love { color: #f33e5b; }
+.action-bar-btn.reacted-care, .post-action-btn.reacted-care { color: #f7b125; }
+.action-bar-btn.reacted-haha, .post-action-btn.reacted-haha { color: #f7b125; }
+.action-bar-btn.reacted-wow, .post-action-btn.reacted-wow { color: #f7b125; }
+.action-bar-btn.reacted-sad, .post-action-btn.reacted-sad { color: #f7b125; }
+.action-bar-btn.reacted-angry, .post-action-btn.reacted-angry { color: #e41e3f; }
 
 /* Reaction Floating Popup */
 .reaction-floating-popup {

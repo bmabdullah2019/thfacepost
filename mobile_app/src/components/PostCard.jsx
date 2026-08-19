@@ -95,13 +95,12 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
 
       {/* Post Media Attachment */}
       {(post.image || (post.media && post.media.length > 0)) && (
-        <div style={{ marginTop: 8, width: '100%', overflow: 'hidden', backgroundColor: 'var(--bg-main)' }}>
+        <div className="post-media-grid">
           {post.image ? (
             <img 
               src={post.image} 
               alt="Post attachment" 
               loading="lazy" 
-              style={{ width: '100%', maxHeight: 480, objectFit: 'cover', display: 'block' }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           ) : (
@@ -111,7 +110,6 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
                 src={imgUrl} 
                 alt="Post content" 
                 loading="lazy" 
-                style={{ width: '100%', maxHeight: 480, objectFit: 'cover', display: 'block' }}
                 onError={(e) => { e.target.style.display = 'none'; }} 
               />
             ))
@@ -160,10 +158,10 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
         </div>
       )}
 
-      {/* Post Actions Bar */}
+      {/* Post Actions Bar with action-bar-btn */}
       <div className="post-actions-bar">
         <button 
-          className={`post-action-btn ${currentReactionInfo ? currentReactionInfo.class : ''}`}
+          className={`action-bar-btn ${currentReactionInfo ? currentReactionInfo.class : ''}`}
           onClick={handleQuickLike}
           onMouseEnter={() => setShowReactionPicker(true)}
           onTouchStart={() => {
@@ -187,7 +185,7 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
         </button>
 
         <button 
-          className="post-action-btn"
+          className="action-bar-btn"
           onClick={() => setShowCommentsModal(true)}
         >
           <MessageSquare size={18} />
@@ -195,7 +193,7 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
         </button>
 
         <button 
-          className="post-action-btn"
+          className="action-bar-btn"
           onClick={() => alert('Post link copied to clipboard! 🔗✨')}
         >
           <Share2 size={18} />
