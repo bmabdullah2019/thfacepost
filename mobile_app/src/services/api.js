@@ -6,12 +6,13 @@
  * - Direct REST API (api.php)
  * - Native Web Action Fallback
  * - Full Dynamic Live Data for:
- *   1. Auth & Profiles (Avatar & Cover by username)
- *   2. Newsfeed & Photos
+ *   1. Auth & Profiles (Avatar & Cover by username with OSSN Salt support)
+ *   2. Newsfeed & Attached Photos
  *   3. Stories Tray
- *   4. Direct Messenger (Live Chats & Real-time Messages)
- *   5. Notifications (Live Friend Requests & Alerts)
- *   6. Dynamic Search
+ *   4. Reels (Dynamic Video Clips & Creators)
+ *   5. Direct Messenger (Live Chats & Real-time Messages)
+ *   6. Notifications (Live Friend Requests & Alerts)
+ *   7. Dynamic Search
  */
 import { CapacitorHttp } from '@capacitor/core';
 
@@ -73,7 +74,7 @@ export async function loginWithServer(username, password) {
       return data;
     }
     if (res.status === 401 && data && data.message) {
-      return data;
+      // Don't give up immediately on 401 if direct API is misconfigured, try Tier 2 fallback!
     }
   } catch (e) {}
 
@@ -151,7 +152,7 @@ export async function loginWithServer(username, password) {
 
   return {
     status: 'error',
-    message: 'Unable to reach the server. Please check your internet connection.'
+    message: 'Invalid username or password. Please check your credentials.'
   };
 }
 
@@ -283,6 +284,26 @@ export async function fetchLiveStories() {
 }
 
 /**
+ * Dynamic Reels Fetcher
+ */
+export async function fetchLiveReels() {
+  try {
+    const res = await CapacitorHttp.get({
+      url: `${DIRECT_API}?route=reels`,
+      headers: { 'Accept': 'application/json' }
+    });
+    let data = res.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch (e) {}
+    }
+    if (data && data.status === 'success' && Array.isArray(data.reels) && data.reels.length > 0) {
+      return data.reels;
+    }
+  } catch (e) {}
+  return null;
+}
+
+/**
  * Dynamic User Profile Fetcher
  */
 export async function fetchUserProfile(username) {
@@ -346,10 +367,6 @@ export async function sendLiveChatMessage(fromUsername, toUsername, messageText)
     sender: 'me',
     time: 'Just now'
   };
-}
-
-export async function fetchLiveReels() {
-  return null;
 }
 
 /**
