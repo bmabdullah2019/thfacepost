@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component>
+    <name>TheFacePostApi</name>
+    <id>TheFacePostApi</id>
+    <author>The FacePost Team</author>
+    <description>REST API Endpoints for The FacePost Mobile Application</description>
+    <version>1.0</version>
+    <requirements>
+        <type>ossn_version</type>
+        <version>6.0</version>
+    </requirements>
+</component>

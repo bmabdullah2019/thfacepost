@@ -11,6 +11,8 @@ import NotificationsTab from './components/NotificationsTab';
 import ProfileMenuTab from './components/ProfileMenuTab';
 import SearchModal from './components/SearchModal';
 
+import { fetchFeedPosts, fetchLiveStories, fetchLiveReels } from './services/api';
+
 import {
   initialCurrentUser,
   initialStories,
@@ -21,9 +23,14 @@ import {
 } from './mockData';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(initialCurrentUser);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('facepost_user');
+    return saved ? JSON.parse(saved) : initialCurrentUser;
+  });
+
   const [activeTab, setActiveTab] = useState('feed');
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Data States
   const [stories, setStories] = useState(() => {
@@ -57,6 +64,36 @@ export default function App() {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
 
+  // Load Live Data from https://thefacepost.com/ on mount
+  useEffect(() => {
+    async function loadLiveServerData() {
+      setIsSyncing(true);
+      try {
+        const [livePosts, liveStories, liveReels] = await Promise.all([
+          fetchFeedPosts(),
+          fetchLiveStories(),
+          fetchLiveReels()
+        ]);
+
+        if (livePosts && livePosts.length > 0) {
+          setPosts(livePosts);
+        }
+        if (liveStories && liveStories.length > 0) {
+          setStories(liveStories);
+        }
+        if (liveReels && liveReels.length > 0) {
+          setReels(liveReels);
+        }
+      } catch (e) {
+        console.warn('Live synchronization error:', e);
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+
+    loadLiveServerData();
+  }, []);
+
   // Sync to LocalStorage
   useEffect(() => {
     localStorage.setItem('facepost_posts', JSON.stringify(posts));
@@ -73,6 +110,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('facepost_notifs', JSON.stringify(notifications));
   }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem('facepost_user', JSON.stringify(currentUser));
+  }, [currentUser]);
 
   // Handle Dark Mode
   useEffect(() => {
