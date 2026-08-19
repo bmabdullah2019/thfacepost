@@ -113,9 +113,14 @@ export default function AuthScreen({ onLoginSuccess }) {
   return (
     <div className="auth-wrapper">
       {/* Top Branding */}
-      <div className="auth-header">
+      <div className="auth-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <img 
+          src="/app-icon.png" 
+          alt="TFP Logo" 
+          style={{ width: 68, height: 68, borderRadius: 16, boxShadow: '0 8px 20px rgba(24, 117, 75, 0.35)', marginBottom: 8, objectFit: 'cover' }} 
+        />
         <div style={{
-          fontSize: 36,
+          fontSize: 34,
           fontWeight: 800,
           background: 'linear-gradient(135deg, #1877f2 0%, #00d2ff 100%)',
           WebkitBackgroundClip: 'text',
@@ -127,17 +132,17 @@ export default function AuthScreen({ onLoginSuccess }) {
         }}>
           <span>facepost</span>
           <span style={{
-            width: 9,
-            height: 9,
+            width: 8,
+            height: 8,
             backgroundColor: '#31a24c',
             borderRadius: '50%',
             boxShadow: '0 0 8px #31a24c'
           }} />
         </div>
         <p style={{
-          fontSize: 14,
+          fontSize: 13.5,
           color: 'var(--text-secondary)',
-          marginTop: 4,
+          marginTop: 2,
           fontWeight: 500
         }}>
           Connect with friends and the world around you.

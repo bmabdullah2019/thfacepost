@@ -11,7 +11,12 @@ export default function Header({
 }) {
   return (
     <header className="top-header">
-      <div className="brand-title">
+      <div className="brand-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <img 
+          src="/app-icon.png" 
+          alt="TFP" 
+          style={{ width: 28, height: 28, borderRadius: 7, objectFit: 'cover' }} 
+        />
         <span>facepost</span>
         <span className="brand-dot" title="Online & Connected" />
       </div>
