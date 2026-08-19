@@ -10,11 +10,11 @@ import MessengerTab from './components/MessengerTab';
 import NotificationsTab from './components/NotificationsTab';
 import ProfileMenuTab from './components/ProfileMenuTab';
 import SearchModal from './components/SearchModal';
+import AuthScreen from './components/AuthScreen';
 
 import { fetchFeedPosts, fetchLiveStories, fetchLiveReels } from './services/api';
 
 import {
-  initialCurrentUser,
   initialStories,
   initialPosts,
   initialReels,
@@ -23,9 +23,10 @@ import {
 } from './mockData';
 
 export default function App() {
+  // Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('facepost_user');
-    return saved ? JSON.parse(saved) : initialCurrentUser;
+    const saved = localStorage.getItem('facepost_auth_user');
+    return saved ? JSON.parse(saved) : null;
   });
 
   const [activeTab, setActiveTab] = useState('feed');
@@ -64,8 +65,10 @@ export default function App() {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
 
-  // Load Live Data from https://thefacepost.com/ on mount
+  // Load Live Data from https://thefacepost.com/ on mount if authenticated
   useEffect(() => {
+    if (!currentUser) return;
+
     async function loadLiveServerData() {
       setIsSyncing(true);
       try {
@@ -92,7 +95,7 @@ export default function App() {
     }
 
     loadLiveServerData();
-  }, []);
+  }, [currentUser]);
 
   // Sync to LocalStorage
   useEffect(() => {
@@ -112,7 +115,11 @@ export default function App() {
   }, [notifications]);
 
   useEffect(() => {
-    localStorage.setItem('facepost_user', JSON.stringify(currentUser));
+    if (currentUser) {
+      localStorage.setItem('facepost_auth_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('facepost_auth_user');
+    }
   }, [currentUser]);
 
   // Handle Dark Mode
@@ -124,11 +131,31 @@ export default function App() {
     }
   }, [isDarkMode]);
 
+  // Auth Handlers
+  const handleLoginSuccess = (user, token) => {
+    setCurrentUser(user);
+    if (token) {
+      localStorage.setItem('facepost_auth_token', token);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('facepost_auth_user');
+    localStorage.removeItem('facepost_auth_token');
+    setActiveTab('feed');
+  };
+
+  // If NOT logged in, display the Facebook-style AuthScreen
+  if (!currentUser) {
+    return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
   // Counts
   const unreadNotifCount = notifications.filter(n => n.unread).length;
   const unreadMsgCount = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
-  // Handlers
+  // App Event Handlers
   const handleToggleTheme = () => {
     setIsDarkMode(!isDarkMode);
   };
@@ -214,7 +241,6 @@ export default function App() {
 
   const handleSelectChat = (chatId) => {
     setActiveChatId(chatId);
-    // Mark as read
     setChats(prev => prev.map(c => c.id === chatId ? { ...c, unreadCount: 0 } : c));
   };
 
@@ -335,6 +361,7 @@ export default function App() {
             isDarkMode={isDarkMode}
             onToggleTheme={handleToggleTheme}
             onAddStory={handleAddStory}
+            onLogout={handleLogout}
           />
         )}
       </main>

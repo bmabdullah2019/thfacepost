@@ -4,7 +4,7 @@ import {
   Settings, HelpCircle, Moon, LogOut, Edit3, Camera, MapPin, Briefcase, GraduationCap 
 } from 'lucide-react';
 
-export default function ProfileMenuTab({ currentUser, isDarkMode, onToggleTheme, onAddStory }) {
+export default function ProfileMenuTab({ currentUser, isDarkMode, onToggleTheme, onAddStory, onLogout }) {
   const menuItems = [
     { icon: Bookmark, label: 'Saved Posts', color: '#8a3ab9' },
     { icon: Users, label: 'Groups & Hubs', color: '#1877f2' },
@@ -221,6 +221,11 @@ export default function ProfileMenuTab({ currentUser, isDarkMode, onToggleTheme,
           </div>
 
           <div
+            onClick={() => {
+              if (window.confirm('Are you sure you want to log out of The FacePost?')) {
+                onLogout();
+              }
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',

@@ -26,23 +26,152 @@ function thefacepost_api_router($pages) {
 
     $version = isset($pages[0]) ? $pages[0] : 'v1.0';
     $endpoint = isset($pages[1]) ? $pages[1] : '';
-    $action = isset($pages[2]) ? $pages[2] : '';
+    $sub_endpoint = isset($pages[2]) ? $pages[2] : '';
 
     $site_url = rtrim(ossn_site_url(), '/');
 
-    // 1. Feed Posts (/api/v1.0/feed or /api/feed)
+    // 1. Authentication Endpoints (/api/v1.0/auth/login or /api/v1.0/auth/register or /api/auth/...)
+    if ($endpoint === 'auth' || $version === 'auth') {
+        $action = $sub_endpoint ?: (isset($pages[1]) && $version === 'auth' ? $pages[1] : 'login');
+        $raw_input = file_get_contents('php://input');
+        $input = json_decode($raw_input, true) ?: $_POST;
+
+        // Login
+        if ($action === 'login' || empty($action)) {
+            $username = isset($input['username']) ? trim($input['username']) : '';
+            $password = isset($input['password']) ? trim($input['password']) : '';
+
+            if (empty($username) || empty($password)) {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'Please provide both username/email and password'
+                ], 400);
+            }
+
+            $user = new OssnUser();
+            $user_obj = $user->getUserByUsername($username);
+            if (!$user_obj) {
+                $user_obj = $user->getUserByEmail($username);
+            }
+
+            if ($user_obj && ossn_validate_password($password, $user_obj->password)) {
+                $fullname = $user_obj->fullname ?: trim($user_obj->first_name . ' ' . $user_obj->last_name);
+                $avatar = $user_obj->iconURL()->large ?: $site_url . '/themes/goblue/images/profile.png';
+                $cover = $user_obj->coverURL() ?: 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?w=800&auto=format&fit=crop&q=80';
+
+                thefacepost_api_json_response([
+                    'status' => 'success',
+                    'message' => 'Login successful',
+                    'user' => [
+                        'id' => 'u_' . $user_obj->guid,
+                        'guid' => (int)$user_obj->guid,
+                        'name' => $fullname ?: $user_obj->username,
+                        'username' => $user_obj->username,
+                        'email' => $user_obj->email,
+                        'avatar' => $avatar,
+                        'coverPhoto' => $cover,
+                        'bio' => 'Member of The FacePost community 🌟',
+                        'livesIn' => 'Dhaka, Bangladesh',
+                        'work' => 'The FacePost User',
+                        'education' => 'Community Member',
+                        'followersCount' => '1.2K',
+                        'friendsCount' => '450',
+                        'followingCount' => '120',
+                        'verified' => true
+                    ],
+                    'token' => md5($user_obj->guid . '_' . $user_obj->password . '_' . time())
+                ]);
+            } else {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'Invalid username or password. Please try again.'
+                ], 401);
+            }
+        }
+
+        // Register
+        if ($action === 'register') {
+            $first_name = isset($input['first_name']) ? trim($input['first_name']) : '';
+            $last_name = isset($input['last_name']) ? trim($input['last_name']) : '';
+            $email = isset($input['email']) ? trim($input['email']) : '';
+            $username = isset($input['username']) ? trim($input['username']) : '';
+            $password = isset($input['password']) ? trim($input['password']) : '';
+            $gender = isset($input['gender']) ? trim($input['gender']) : 'male';
+            $birthdate = isset($input['birthdate']) ? trim($input['birthdate']) : '2000-01-01';
+
+            if (empty($first_name) || empty($last_name) || empty($email) || empty($username) || empty($password)) {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'All fields (First name, Last name, Email, Username, Password) are required'
+                ], 400);
+            }
+
+            $user = new OssnUser();
+            if ($user->getUserByUsername($username)) {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'Username already taken. Please choose another one.'
+                ], 409);
+            }
+
+            if ($user->getUserByEmail($email)) {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'Email address is already registered.'
+                ], 409);
+            }
+
+            $user->first_name = $first_name;
+            $user->last_name = $last_name;
+            $user->email = $email;
+            $user->username = $username;
+            $user->password = $password;
+            $user->gender = $gender;
+            $user->birthdate = $birthdate;
+
+            if ($user->addUser()) {
+                $new_user = $user->getUserByUsername($username);
+                $fullname = trim($first_name . ' ' . $last_name);
+                $avatar = $new_user ? $new_user->iconURL()->large : $site_url . '/themes/goblue/images/profile.png';
+
+                thefacepost_api_json_response([
+                    'status' => 'success',
+                    'message' => 'Account created successfully',
+                    'user' => [
+                        'id' => 'u_' . ($new_user ? $new_user->guid : rand(100, 999)),
+                        'guid' => $new_user ? (int)$new_user->guid : rand(100, 999),
+                        'name' => $fullname,
+                        'username' => $username,
+                        'email' => $email,
+                        'avatar' => $avatar,
+                        'coverPhoto' => 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?w=800&auto=format&fit=crop&q=80',
+                        'bio' => 'New member of The FacePost ✨',
+                        'livesIn' => 'Bangladesh',
+                        'followersCount' => '0',
+                        'friendsCount' => '0',
+                        'followingCount' => '0',
+                        'verified' => false
+                    ],
+                    'token' => md5($username . '_' . time())
+                ], 201);
+            } else {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'Failed to create account. Please verify your details.'
+                ], 500);
+            }
+        }
+    }
+
+    // 2. Feed Posts (/api/v1.0/feed)
     if ($endpoint === 'feed' || $version === 'feed') {
         $wall = new OssnWall();
-        $posts_raw = $wall->GetPostByOwner(0, 'user');
-        if (!$posts_raw) {
-            // Fallback: search wall objects directly
-            $posts_raw = $wall->searchObject([
-                'type' => 'user',
-                'subtype' => 'wall',
-                'order_by' => 'o.guid DESC',
-                'limit' => 30
-            ]);
-        }
+        $posts_raw = $wall->searchObject([
+            'type' => 'user',
+            'subtype' => 'wall',
+            'order_by' => 'o.guid DESC',
+            'limit' => 30
+        ]);
 
         $formatted = [];
         if ($posts_raw) {
@@ -51,7 +180,6 @@ function thefacepost_api_router($pages) {
                 $poster_name = $user ? ($user->fullname ?: $user->first_name . ' ' . $user->last_name) : 'TheFacePost Member';
                 $avatar = $user ? $user->iconURL()->large : $site_url . '/themes/goblue/images/profile.png';
 
-                // Post media (check photo or file)
                 $media = [];
                 if (isset($p->item_guid) && !empty($p->item_guid) && $p->item_type == 'photo') {
                     $photo = ossn_get_object($p->item_guid);
@@ -60,13 +188,11 @@ function thefacepost_api_router($pages) {
                     }
                 }
 
-                // Likes count
                 $likes_count = 0;
                 if (function_exists('ossn_likes_count')) {
                     $likes_count = (int)ossn_likes_count($p->guid, 'entity') ?: (int)ossn_likes_count($p->guid, 'object');
                 }
 
-                // Comments count
                 $comments_count = 0;
                 if (function_exists('ossn_count_comments')) {
                     $comments_count = (int)ossn_count_comments($p->guid, 'entity') ?: (int)ossn_count_comments($p->guid, 'object');
@@ -112,10 +238,9 @@ function thefacepost_api_router($pages) {
         ]);
     }
 
-    // 2. Stories (/api/v1.0/stories)
+    // 3. Stories (/api/v1.0/stories)
     if ($endpoint === 'stories' || $version === 'stories') {
         $stories_data = [];
-        // Fetch active users with avatars for dynamic stories
         $users_db = new OssnDatabase();
         $users_db->statement("SELECT guid, username, first_name, last_name FROM ossn_users WHERE is_banned=0 AND is_activated=1 ORDER BY guid DESC LIMIT 10");
         $users_db->execute();
@@ -148,7 +273,7 @@ function thefacepost_api_router($pages) {
         ]);
     }
 
-    // 3. Reels / Videos (/api/v1.0/reels)
+    // 4. Reels / Videos (/api/v1.0/reels)
     if ($endpoint === 'reels' || $version === 'reels') {
         thefacepost_api_json_response([
             'status' => 'success',
@@ -172,43 +297,6 @@ function thefacepost_api_router($pages) {
                 ]
             ]
         ]);
-    }
-
-    // 4. Auth / Login (/api/v1.0/auth/login)
-    if ($endpoint === 'auth' || $version === 'auth') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        $username = isset($input['username']) ? trim($input['username']) : (isset($_POST['username']) ? trim($_POST['username']) : '');
-        $password = isset($input['password']) ? trim($input['password']) : (isset($_POST['password']) ? trim($_POST['password']) : '');
-
-        if (empty($username) || empty($password)) {
-            thefacepost_api_json_response(['status' => 'error', 'message' => 'Username and password required'], 400);
-        }
-
-        $user = new OssnUser();
-        $user_obj = $user->getUserByUsername($username);
-        if (!$user_obj) {
-            $user_obj = $user->getUserByEmail($username);
-        }
-
-        if ($user_obj && ossn_validate_password($password, $user_obj->password)) {
-            thefacepost_api_json_response([
-                'status' => 'success',
-                'user' => [
-                    'id' => 'u_' . $user_obj->guid,
-                    'guid' => $user_obj->guid,
-                    'name' => $user_obj->fullname ?: ($user_obj->first_name . ' ' . $user_obj->last_name),
-                    'username' => $user_obj->username,
-                    'email' => $user_obj->email,
-                    'avatar' => $user_obj->iconURL()->large,
-                    'coverPhoto' => $user_obj->coverURL() ?: 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?w=800&auto=format&fit=crop&q=80',
-                    'bio' => 'Member of The FacePost community 🌟',
-                    'verified' => true
-                ],
-                'token' => md5($user_obj->guid . '_' . $user_obj->password . '_' . time())
-            ]);
-        } else {
-            thefacepost_api_json_response(['status' => 'error', 'message' => 'Invalid username or password'], 401);
-        }
     }
 
     // 5. Notifications (/api/v1.0/notifications)
@@ -236,10 +324,11 @@ function thefacepost_api_router($pages) {
         'status' => 'online',
         'api' => 'TheFacePost REST API v1.0',
         'endpoints' => [
+            '/api/v1.0/auth/login',
+            '/api/v1.0/auth/register',
             '/api/v1.0/feed',
             '/api/v1.0/stories',
             '/api/v1.0/reels',
-            '/api/v1.0/auth/login',
             '/api/v1.0/notifications'
         ]
     ]);
