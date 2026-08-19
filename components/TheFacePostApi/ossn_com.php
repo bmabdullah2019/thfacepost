@@ -91,13 +91,13 @@ function thefacepost_api_router($pages) {
 
         // Register
         if ($action === 'register') {
-            $first_name = isset($input['first_name']) ? trim($input['first_name']) : '';
-            $last_name = isset($input['last_name']) ? trim($input['last_name']) : '';
+            $first_name = isset($input['first_name']) ? trim($input['first_name']) : (isset($input['firstname']) ? trim($input['firstname']) : '');
+            $last_name = isset($input['last_name']) ? trim($input['last_name']) : (isset($input['lastname']) ? trim($input['lastname']) : '');
             $email = isset($input['email']) ? trim($input['email']) : '';
             $username = isset($input['username']) ? trim($input['username']) : '';
             $password = isset($input['password']) ? trim($input['password']) : '';
             $gender = isset($input['gender']) ? trim($input['gender']) : 'male';
-            $birthdate = isset($input['birthdate']) ? trim($input['birthdate']) : '2000-01-01';
+            $birthdate = isset($input['birthdate']) ? trim($input['birthdate']) : '1998-06-15';
 
             if (empty($first_name) || empty($last_name) || empty($email) || empty($username) || empty($password)) {
                 thefacepost_api_json_response([

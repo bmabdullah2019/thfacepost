@@ -11,6 +11,7 @@
   --bg-card-subtle: #f7f8fa;
   --bg-header: rgba(255, 255, 255, 0.95);
   --bg-input: #f0f2f5;
+  --bg-input-focus: #ffffff;
   --bg-hover: #e4e6eb;
   
   --text-primary: #050505;
@@ -18,8 +19,9 @@
   --text-muted: #8a8d91;
   --text-inverse: #ffffff;
   
-  --border-color: #e4e6eb;
+  --border-color: #ccd0d5;
   --border-subtle: #edf0f5;
+  --border-focus: #1877f2;
   
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -47,16 +49,18 @@
   --bg-card: #242526;
   --bg-card-subtle: #1c1d1e;
   --bg-header: rgba(36, 37, 38, 0.95);
-  --bg-input: #3a3b3c;
+  --bg-input: #333538;
+  --bg-input-focus: #3a3b3c;
   --bg-hover: #3a3b3c;
   
   --text-primary: #e4e6eb;
   --text-secondary: #b0b3b8;
-  --text-muted: #74777d;
+  --text-muted: #8a8d91;
   --text-inverse: #ffffff;
   
-  --border-color: #393a3b;
+  --border-color: #3e4042;
   --border-subtle: #2d2e2f;
+  --border-focus: #2d88ff;
   
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -64,16 +68,11 @@
   --shadow-reaction: 0 8px 24px rgba(0, 0, 0, 0.8);
 }
 
-* {
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-
-input, textarea {
-  user-select: text;
 }
 
 body {
@@ -83,10 +82,12 @@ body {
   line-height: 1.4;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
-/* App Wrapper for Phone Experience */
+/* App Container */
 .app-container {
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
@@ -95,6 +96,170 @@ body {
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
+}
+
+/* Auth Responsive Layout */
+.auth-wrapper {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: calc(var(--safe-top) + 20px) 16px calc(var(--safe-bottom) + 20px) 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  background-color: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 22px 18px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.auth-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.auth-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.auth-input-group {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-field {
+  width: 100%;
+  min-width: 0;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.auth-input-field:focus {
+  border-color: var(--border-focus);
+  background-color: var(--bg-input-focus);
+}
+
+.auth-input-field::placeholder {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.auth-select-field {
+  width: 100%;
+  min-width: 0;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.auth-select-field:focus {
+  border-color: var(--border-focus);
+}
+
+.auth-gender-option {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-gender-option.selected {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.btn-auth-primary {
+  width: 100%;
+  background: linear-gradient(135deg, #1877f2, #00b4d8);
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  box-shadow: 0 4px 14px rgba(24, 119, 242, 0.35);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-auth-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-auth-success {
+  width: 100%;
+  background: #42b72a;
+  color: white;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(66, 183, 42, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.btn-auth-success:active {
+  transform: scale(0.98);
 }
 
 /* Top App Bar */
@@ -863,7 +1028,6 @@ body {
   font-weight: 700;
 }
 
-/* Floating Action / Post Button */
 .btn-primary {
   background: linear-gradient(135deg, #1877f2, #00b4d8);
   color: white;
