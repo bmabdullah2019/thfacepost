@@ -3,7 +3,17 @@
   "appName": "The FacePost",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "url": "https://thefacepost.com/",
+    "cleartext": true,
+    "allowNavigation": [
+      "thefacepost.com",
+      "*.thefacepost.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
   },
   "plugins": {
     "SplashScreen": {
@@ -12,7 +22,7 @@
       "backgroundColor": "#1877F2",
       "androidSplashResourceName": "splash",
       "androidScaleType": "CENTER_CROP",
-      "showSpinner": false
+      "showSpinner": true
     }
   }
 }
