@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Image, Video, Smile, Globe, Users, Lock, X } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Image, Video, Smile, Globe, Users, Lock, X, Tag, MapPin, Camera } from 'lucide-react';
 
 export default function PostComposer({ 
   currentUser, 
@@ -9,234 +9,292 @@ export default function PostComposer({
   onCloseModal 
 }) {
   const [postText, setPostText] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
   const [privacy, setPrivacy] = useState('public');
   const [feeling, setFeeling] = useState('');
+  const [showFeelingsPicker, setShowFeelingsPicker] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const feelingsList = [
+    { label: 'Happy', emoji: '😊' },
+    { label: 'Blessed', emoji: '😇' },
+    { label: 'Loved', emoji: '🥰' },
+    { label: 'Excited', emoji: '🤩' },
+    { label: 'Crazy', emoji: '🤪' },
+    { label: 'Thankful', emoji: '🙏' },
+    { label: 'Proud', emoji: '😎' }
+  ];
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleCreatePost = (e) => {
-    e.preventDefault();
-    if (!postText.trim() && !mediaUrl.trim()) return;
+    if (e) e.preventDefault();
+    if (!postText.trim() && !selectedImage) return;
 
-    const newPost = {
-      id: `post_${Date.now()}`,
-      author: {
-        id: currentUser.id,
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-        verified: true
-      },
-      timeAgo: 'Just now',
-      privacy,
-      content: feeling ? `${postText} — is feeling ${feeling}` : postText,
-      media: mediaUrl ? [mediaUrl] : [],
-      reactions: {
-        like: 1,
-        love: 0,
-        care: 0,
-        haha: 0,
-        wow: 0,
-        sad: 0,
-        angry: 0
-      },
-      userReaction: 'like',
-      commentsCount: 0,
-      sharesCount: 0,
-      comments: []
-    };
+    const content = feeling ? `${postText} — feeling ${feeling}` : postText;
 
-    onAddNewPost(newPost);
+    onAddNewPost({
+      content,
+      image: selectedImage,
+      privacy
+    });
+
     setPostText('');
-    setMediaUrl('');
+    setSelectedImage(null);
     setFeeling('');
+    setShowFeelingsPicker(false);
     onCloseModal();
   };
 
-  const sampleImages = [
-    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80"
-  ];
-
   return (
     <>
-      {/* Top Composer Trigger Box */}
+      {/* Feed Composer Trigger Card */}
       <div className="composer-card">
         <div className="composer-top">
-          <div className="avatar-wrapper">
-            <img src={currentUser.avatar} alt="Me" className="avatar-img" />
-            <span className="avatar-online-dot" />
-          </div>
-          <div 
-            className="composer-input-fake" 
+          <img 
+            src={currentUser.avatar} 
+            alt={currentUser.name} 
+            className="composer-avatar"
+            onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
+          />
+          <button 
+            className="composer-input-btn"
             onClick={onOpenModal}
           >
-            What's on your mind, {currentUser.name.split(' ')[0]}?
-          </div>
+            What's on your mind, {currentUser.name?.split(' ')[0] || 'Friend'}?
+          </button>
         </div>
 
-        <div className="composer-divider" />
-
         <div className="composer-actions">
-          <button className="composer-btn" onClick={onOpenModal}>
+          <button 
+            className="composer-action-btn"
+            onClick={() => {
+              onOpenModal();
+              setTimeout(() => fileInputRef.current?.click(), 100);
+            }}
+          >
             <Image size={18} color="#45bd62" />
             <span>Photo</span>
           </button>
-          <button className="composer-btn" onClick={onOpenModal}>
-            <Video size={18} color="#f02849" />
-            <span>Reel / Video</span>
-          </button>
-          <button className="composer-btn" onClick={onOpenModal}>
+
+          <button 
+            className="composer-action-btn"
+            onClick={() => {
+              onOpenModal();
+              setShowFeelingsPicker(true);
+            }}
+          >
             <Smile size={18} color="#f7b125" />
             <span>Feeling</span>
+          </button>
+
+          <button 
+            className="composer-action-btn"
+            onClick={onOpenModal}
+          >
+            <Video size={18} color="#f3425f" />
+            <span>Live Video</span>
           </button>
         </div>
       </div>
 
-      {/* Full Modal for Post Creation */}
+      {/* Fullscreen / Interactive Modal Composer */}
       {isOpenModal && (
-        <div className="modal-overlay" onClick={onCloseModal}>
-          <div 
-            className="modal-bottom-sheet" 
-            style={{ maxHeight: '92vh', height: '80vh' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="modal-backdrop" onClick={onCloseModal}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ width: 32 }} />
-              <h3 className="modal-title">Create Post</h3>
-              <button 
-                className="icon-btn" 
-                style={{ width: 32, height: 32 }} 
-                onClick={onCloseModal}
-              >
-                <X size={18} />
+              <span className="modal-title">Create Post</span>
+              <button className="icon-btn" onClick={onCloseModal}>
+                <X size={20} />
               </button>
             </div>
 
-            <div style={{ padding: '16px', flex: 1, overflowY: 'auto' }}>
-              {/* User Info Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <img 
-                  src={currentUser.avatar} 
-                  alt={currentUser.name} 
-                  style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} 
+            <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div className="modal-body">
+                {/* Author Details & Privacy Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <img 
+                    src={currentUser.avatar} 
+                    alt={currentUser.name} 
+                    style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>{currentUser.name}</span>
+                      {feeling && (
+                        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
+                          is feeling {feeling}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      backgroundColor: 'var(--bg-input)',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      marginTop: 2,
+                      fontWeight: 600
+                    }}>
+                      <Globe size={12} />
+                      <span>{privacy === 'public' ? 'Public' : 'Friends'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Text Input Area */}
+                <textarea
+                  className="modal-textarea"
+                  placeholder={`What's on your mind, ${currentUser.name?.split(' ')[0] || 'Friend'}?`}
+                  value={postText}
+                  onChange={(e) => setPostText(e.target.value)}
+                  autoFocus
+                  rows={4}
                 />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{currentUser.name}</div>
-                  
-                  {/* Privacy Selector */}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+
+                {/* Selected Image Preview */}
+                {selectedImage && (
+                  <div style={{ position: 'relative', marginTop: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                    <img 
+                      src={selectedImage} 
+                      alt="Uploaded preview" 
+                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover' }} 
+                    />
                     <button
                       type="button"
-                      onClick={() => setPrivacy(privacy === 'public' ? 'friends' : 'public')}
+                      onClick={() => setSelectedImage(null)}
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        backgroundColor: 'var(--bg-input)',
-                        color: 'var(--text-secondary)',
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        backgroundColor: 'rgba(0,0,0,0.7)',
                         border: 'none',
-                        borderRadius: 6,
-                        padding: '3px 8px',
-                        fontSize: 12,
-                        fontWeight: 600,
+                        color: 'white',
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         cursor: 'pointer'
                       }}
                     >
-                      {privacy === 'public' ? <Globe size={12} /> : <Users size={12} />}
-                      <span style={{ textTransform: 'capitalize' }}>{privacy}</span>
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Feelings Picker Grid */}
+                {showFeelingsPicker && (
+                  <div style={{ marginTop: 12, padding: 10, backgroundColor: 'var(--bg-input)', borderRadius: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>
+                      How are you feeling?
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {feelingsList.map((f, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            setFeeling(`${f.label} ${f.emoji}`);
+                            setShowFeelingsPicker(false);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 16,
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: feeling.includes(f.label) ? 'var(--primary)' : 'var(--bg-card)',
+                            color: feeling.includes(f.label) ? 'white' : 'var(--text-primary)',
+                            fontSize: 13,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <span>{f.emoji}</span>
+                          <span>{f.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Hidden File Input */}
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  onChange={handleImageSelect}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
+
+                {/* Add to Post Quick Toolbar */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border-color)',
+                  marginTop: 16,
+                  backgroundColor: 'var(--bg-card)'
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>Add to your post</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button 
+                      type="button" 
+                      className="icon-btn" 
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Add Photo"
+                    >
+                      <Image size={20} color="#45bd62" />
+                    </button>
+                    <button 
+                      type="button" 
+                      className="icon-btn" 
+                      onClick={() => setShowFeelingsPicker(!showFeelingsPicker)}
+                      title="Add Feeling"
+                    >
+                      <Smile size={20} color="#f7b125" />
+                    </button>
+                    <button 
+                      type="button" 
+                      className="icon-btn" 
+                      onClick={() => setPrivacy(privacy === 'public' ? 'friends' : 'public')}
+                      title="Privacy"
+                    >
+                      {privacy === 'public' ? <Globe size={20} color="#1877f2" /> : <Users size={20} color="#1877f2" />}
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Text Input */}
-              <textarea
-                placeholder={`What's on your mind, ${currentUser.name.split(' ')[0]}?`}
-                value={postText}
-                onChange={(e) => setPostText(e.target.value)}
-                autoFocus
-                style={{
-                  width: '100%',
-                  minHeight: 120,
-                  border: 'none',
-                  outline: 'none',
-                  backgroundColor: 'transparent',
-                  color: 'var(--text-primary)',
-                  fontSize: 16,
-                  fontFamily: 'inherit',
-                  resize: 'none'
-                }}
-              />
-
-              {/* Image Preview / Selection */}
-              {mediaUrl && (
-                <div style={{ position: 'relative', marginBottom: 14, borderRadius: 12, overflow: 'hidden' }}>
-                  <img src={mediaUrl} alt="Upload preview" style={{ width: '100%', maxHeight: 220, objectFit: 'cover' }} />
-                  <button
-                    type="button"
-                    onClick={() => setMediaUrl('')}
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      background: 'rgba(0,0,0,0.7)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: 28,
-                      height: 28,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
-
-              {/* Sample Photo Pickers */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                  Attach Photo:
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {sampleImages.map((img, i) => (
-                    <img
-                      key={i}
-                      src={img}
-                      alt="Sample"
-                      onClick={() => setMediaUrl(img)}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        borderRadius: 8,
-                        objectFit: 'cover',
-                        cursor: 'pointer',
-                        border: mediaUrl === img ? '2px solid var(--primary)' : '1px solid var(--border-color)'
-                      }}
-                    />
-                  ))}
-                </div>
+              {/* Submit Post Button */}
+              <div className="modal-footer">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '12px 0', fontSize: 16, fontWeight: 700 }}
+                  disabled={!postText.trim() && !selectedImage}
+                >
+                  Post
+                </button>
               </div>
-            </div>
-
-            {/* Post Submit Footer */}
-            <div style={{ padding: 16, borderTop: '1px solid var(--border-color)' }}>
-              <button
-                className="btn-primary"
-                onClick={handleCreatePost}
-                disabled={!postText.trim() && !mediaUrl.trim()}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  opacity: (!postText.trim() && !mediaUrl.trim()) ? 0.5 : 1
-                }}
-              >
-                Post
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )}

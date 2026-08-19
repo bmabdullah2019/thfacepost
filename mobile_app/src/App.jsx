@@ -20,9 +20,11 @@ import {
   sendLiveChatMessage,
   fetchLiveNotifications,
   createLivePost,
+  createLiveStory,
   reactLivePost,
   commentLivePost,
-  fetchUserProfile
+  fetchUserProfile,
+  updateLiveUserProfile
 } from './services/api';
 
 import {
@@ -44,7 +46,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Data States (Loaded dynamically from database with local persistence)
+  // Data States
   const [stories, setStories] = useState(() => {
     const saved = localStorage.getItem('facepost_stories');
     return saved ? JSON.parse(saved) : initialStories;
@@ -76,7 +78,7 @@ export default function App() {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
 
-  // Load ALL Live Data across all tabs from Server on mount or user login
+  // Load Live Server Data on mount / login
   useEffect(() => {
     if (!currentUser) return;
 
@@ -84,9 +86,10 @@ export default function App() {
     async function loadAllLiveServerData() {
       setIsSyncing(true);
       try {
-        const [livePosts, liveStories, liveChats, liveNotifs, liveProfile] = await Promise.all([
+        const [livePosts, liveStories, liveReels, liveChats, liveNotifs, liveProfile] = await Promise.all([
           fetchFeedPosts(),
           fetchLiveStories(),
+          fetchLiveReels(),
           fetchLiveChats(currentUser.username),
           fetchLiveNotifications(currentUser.username),
           fetchUserProfile(currentUser.username)
@@ -99,6 +102,9 @@ export default function App() {
         }
         if (liveStories && Array.isArray(liveStories) && liveStories.length > 0) {
           setStories(liveStories);
+        }
+        if (liveReels && Array.isArray(liveReels) && liveReels.length > 0) {
+          setReels(liveReels);
         }
         if (liveChats && Array.isArray(liveChats) && liveChats.length > 0) {
           setChats(liveChats);
@@ -130,6 +136,10 @@ export default function App() {
   }, [stories]);
 
   useEffect(() => {
+    localStorage.setItem('facepost_reels', JSON.stringify(reels));
+  }, [reels]);
+
+  useEffect(() => {
     localStorage.setItem('facepost_chats', JSON.stringify(chats));
   }, [chats]);
 
@@ -145,7 +155,7 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Handle Dark Mode
+  // Dark Mode
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -184,19 +194,28 @@ export default function App() {
   // Dynamic Live Post Creator
   const handleAddNewPost = async (newPostData) => {
     const optimisticPost = {
-      ...newPostData,
+      id: `post_${Date.now()}`,
       author: {
         id: currentUser.id,
         name: currentUser.name,
         username: currentUser.username,
         avatar: currentUser.avatar,
         isOnline: true
-      }
+      },
+      timeAgo: 'Just now',
+      content: newPostData.content,
+      image: newPostData.image || null,
+      likes: 0,
+      commentsCount: 0,
+      sharesCount: 0,
+      userReaction: null,
+      reactions: { like: 0, love: 0 },
+      comments: []
     };
     setPosts([optimisticPost, ...posts]);
 
     try {
-      const serverPost = await createLivePost(newPostData.content, currentUser.username);
+      const serverPost = await createLivePost(newPostData.content, newPostData.image, currentUser.username);
       if (serverPost) {
         setPosts(prev => [serverPost, ...prev.filter(p => p.id !== optimisticPost.id)]);
       }
@@ -252,6 +271,7 @@ export default function App() {
     commentLivePost(postId, newComment.text, currentUser.username);
   };
 
+  // Dynamic Reel Like Handler
   const handleLikeReel = (reelId) => {
     setReels(prevReels =>
       prevReels.map(reel => {
@@ -265,6 +285,12 @@ export default function App() {
         return reel;
       })
     );
+  };
+
+  // Dynamic Reel Upload Handler
+  const handleAddNewReel = (newReel) => {
+    setReels([newReel, ...reels]);
+    alert('Reel uploaded and live! 🎬🎉');
   };
 
   // Dynamic Live Chat Messaging
@@ -306,8 +332,9 @@ export default function App() {
     alert('Friend request confirmed! 🤝🎉');
   };
 
-  const handleAddStory = () => {
-    const newStory = {
+  // Dynamic Story Upload
+  const handleAddStory = async (imageBase64) => {
+    const optimisticStory = {
       id: `story_${Date.now()}`,
       user: {
         id: currentUser.id,
@@ -315,16 +342,36 @@ export default function App() {
         avatar: currentUser.avatar,
         isOnline: true
       },
-      mediaUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+      mediaUrl: imageBase64,
       timeAgo: "Just now",
-      caption: "Added a new story update! ✨🔥",
+      caption: "My new story update ✨",
       unread: true
     };
-    setStories([newStory, ...stories]);
+    setStories([optimisticStory, ...stories]);
+
+    try {
+      const serverStory = await createLiveStory(currentUser.username, imageBase64);
+      if (serverStory) {
+        setStories(prev => [serverStory, ...prev.filter(s => s.id !== optimisticStory.id)]);
+      }
+    } catch (err) {
+      console.warn('Story creation error:', err);
+    }
     alert('Story posted successfully! 📸✨');
   };
 
+  // Dynamic Profile Updates (Avatar, Cover, Bio)
+  const handleUpdateProfile = async (updatedFields) => {
+    setCurrentUser(prev => ({ ...prev, ...updatedFields }));
+    try {
+      await updateLiveUserProfile(currentUser.username, updatedFields);
+    } catch (err) {
+      console.warn('Profile update error:', err);
+    }
+  };
+
   const activeChat = chats.find(c => c.id === activeChatId);
+  const myPosts = posts.filter(p => p.author?.username === currentUser.username || p.author?.name === currentUser.name);
 
   return (
     <div className="app-container">
@@ -338,7 +385,7 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Main Top / Secondary Navigation Tab Bar */}
+      {/* Navigation Bar */}
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -351,7 +398,6 @@ export default function App() {
       <main className="main-viewport">
         {activeTab === 'feed' && (
           <>
-            {/* Post Composer Card */}
             <PostComposer
               currentUser={currentUser}
               onAddNewPost={handleAddNewPost}
@@ -360,7 +406,6 @@ export default function App() {
               onCloseModal={() => setIsCreatePostOpen(false)}
             />
 
-            {/* Story Tray */}
             <StoryTray
               stories={stories}
               currentUser={currentUser}
@@ -368,7 +413,6 @@ export default function App() {
               onAddStory={handleAddStory}
             />
 
-            {/* Newsfeed Posts */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {posts.map(post => (
                 <PostCard
@@ -386,7 +430,9 @@ export default function App() {
         {activeTab === 'reels' && (
           <ReelsTab
             reels={reels}
+            currentUser={currentUser}
             onLikeReel={handleLikeReel}
+            onAddNewReel={handleAddNewReel}
           />
         )}
 
@@ -411,10 +457,13 @@ export default function App() {
         {activeTab === 'profile' && (
           <ProfileMenuTab
             currentUser={currentUser}
+            userPosts={myPosts.length > 0 ? myPosts : posts.slice(0, 5)}
             isDarkMode={isDarkMode}
             onToggleTheme={handleToggleTheme}
-            onAddStory={handleAddStory}
+            onUpdateProfile={handleUpdateProfile}
             onLogout={handleLogout}
+            onReactPost={handleReactPost}
+            onAddComment={handleAddComment}
           />
         )}
       </main>

@@ -1,29 +1,124 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { 
-  Bookmark, Users, Clock, Flag, Film, ShoppingBag, 
-  Settings, HelpCircle, Moon, LogOut, Edit3, Camera, MapPin, Briefcase, GraduationCap 
+  Bookmark, Users, Clock, Film, ShoppingBag, 
+  Settings, HelpCircle, Moon, Sun, LogOut, Edit3, Camera, MapPin, Briefcase, GraduationCap,
+  Heart, MessageSquare, Share2, Check, X
 } from 'lucide-react';
+import PostCard from './PostCard';
 
-export default function ProfileMenuTab({ currentUser, isDarkMode, onToggleTheme, onAddStory, onLogout }) {
+export default function ProfileMenuTab({ 
+  currentUser, 
+  userPosts = [], 
+  isDarkMode, 
+  onToggleTheme, 
+  onUpdateProfile, 
+  onLogout,
+  onReactPost,
+  onAddComment
+}) {
+  const [activeSubTab, setActiveSubTab] = useState('posts');
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioText, setBioText] = useState(currentUser.bio || '');
+  
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (onUpdateProfile) {
+          onUpdateProfile({ avatar: reader.result });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (onUpdateProfile) {
+          onUpdateProfile({ coverPhoto: reader.result });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveBio = () => {
+    if (onUpdateProfile) {
+      onUpdateProfile({ bio: bioText });
+    }
+    setIsEditingBio(false);
+  };
+
   const menuItems = [
-    { icon: Bookmark, label: 'Saved Posts', color: '#8a3ab9' },
-    { icon: Users, label: 'Groups & Hubs', color: '#1877f2' },
-    { icon: Clock, label: 'Memories', color: '#00b4d8' },
-    { icon: Film, label: 'Your Reels', color: '#ff2d55' },
-    { icon: ShoppingBag, label: 'Marketplace', color: '#31a24c' },
-    { icon: Flag, label: 'Pages', color: '#f77737' }
+    { icon: Bookmark, label: 'Saved Posts', color: '#8a3ab9', action: () => alert('You have 3 saved bookmarks 📌') },
+    { icon: Users, label: 'Groups & Hubs', color: '#1877f2', action: () => alert('Groups & Community Hubs loaded 👥') },
+    { icon: Clock, label: 'Memories', color: '#00b4d8', action: () => alert('No memories today. Make some new ones! 🕰️') },
+    { icon: Film, label: 'Your Reels', color: '#ff2d55', action: () => alert('Showing your created video reels 🎬') },
+    { icon: ShoppingBag, label: 'Marketplace', color: '#31a24c', action: () => alert('The FacePost Marketplace is coming soon! 🛍️') }
   ];
 
   return (
-    <div style={{ paddingBottom: 24 }}>
-      {/* Cover & Profile Avatar */}
-      <div style={{ position: 'relative', marginBottom: 54 }}>
-        <img
-          src={currentUser.coverPhoto}
-          alt="Cover"
-          style={{ width: '100%', height: 160, objectFit: 'cover' }}
-        />
+    <div style={{ paddingBottom: 32 }}>
+      {/* Hidden File Pickers for Profile & Cover */}
+      <input 
+        type="file" 
+        ref={avatarInputRef} 
+        onChange={handleAvatarChange} 
+        accept="image/*" 
+        style={{ display: 'none' }} 
+      />
+      <input 
+        type="file" 
+        ref={coverInputRef} 
+        onChange={handleCoverChange} 
+        accept="image/*" 
+        style={{ display: 'none' }} 
+      />
+
+      {/* Cover & Profile Avatar Section with Correct Non-cropped Spacing */}
+      <div style={{ position: 'relative', marginBottom: 56, backgroundColor: 'var(--bg-card)' }}>
+        {/* Cover Photo */}
+        <div style={{ position: 'relative', width: '100%', height: 180, overflow: 'hidden' }}>
+          <img
+            src={currentUser.coverPhoto}
+            alt="Cover"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?w=800&auto=format&fit=crop&q=80'; }}
+          />
+          {/* Change Cover Button */}
+          <button 
+            onClick={() => coverInputRef.current?.click()}
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              backgroundColor: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(6px)',
+              border: 'none',
+              color: 'white',
+              borderRadius: 20,
+              padding: '6px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <Camera size={14} />
+            <span>Edit Cover</span>
+          </button>
+        </div>
         
+        {/* Profile Avatar Overlap */}
         <div style={{
           position: 'absolute',
           bottom: -46,
@@ -34,215 +129,290 @@ export default function ProfileMenuTab({ currentUser, isDarkMode, onToggleTheme,
               src={currentUser.avatar}
               alt={currentUser.name}
               style={{
-                width: 90,
-                height: 90,
+                width: 92,
+                height: 92,
                 borderRadius: '50%',
                 border: '4px solid var(--bg-card)',
                 objectFit: 'cover',
                 boxShadow: 'var(--shadow-md)'
               }}
+              onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
             />
-            <button style={{
-              position: 'absolute',
-              bottom: 4,
-              right: 4,
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              backgroundColor: 'var(--bg-input)',
-              border: '2px solid var(--bg-card)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--text-primary)'
-            }}>
+            {/* Change Avatar Button */}
+            <button 
+              onClick={() => avatarInputRef.current?.click()}
+              style={{
+                position: 'absolute',
+                bottom: 4,
+                right: 4,
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                backgroundColor: 'var(--primary)',
+                border: '2px solid var(--bg-card)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'white'
+              }}
+              title="Change Profile Picture"
+            >
               <Camera size={14} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* User Info */}
+      {/* User Info & Bio */}
       <div style={{ padding: '0 16px', marginBottom: 16 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>{currentUser.name}</h2>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>@{currentUser.username}</div>
-        <p style={{ fontSize: 14, lineHeight: 1.4, marginBottom: 12 }}>{currentUser.bio}</p>
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{currentUser.name}</h1>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>@{currentUser.username}</span>
 
-        {/* Profile Details */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Briefcase size={16} /> <span>{currentUser.work}</span>
+        {/* Bio Section */}
+        {isEditingBio ? (
+          <div style={{ marginTop: 10 }}>
+            <textarea
+              value={bioText}
+              onChange={(e) => setBioText(e.target.value)}
+              placeholder="Describe yourself..."
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: 14,
+                outline: 'none',
+                resize: 'none'
+              }}
+              rows={3}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button 
+                onClick={handleSaveBio}
+                className="btn btn-primary"
+                style={{ padding: '6px 16px', fontSize: 13 }}
+              >
+                Save Bio
+              </button>
+              <button 
+                onClick={() => setIsEditingBio(false)}
+                className="btn btn-secondary"
+                style={{ padding: '6px 16px', fontSize: 13 }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <GraduationCap size={16} /> <span>{currentUser.education}</span>
+        ) : (
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              {currentUser.bio || 'Active Member of The FacePost community 🌟'}
+            </p>
+            <button
+              onClick={() => setIsEditingBio(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 4 }}
+              title="Edit Bio"
+            >
+              <Edit3 size={16} />
+            </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MapPin size={16} /> <span>Lives in <b>{currentUser.livesIn}</b></span>
+        )}
+
+        {/* User Details / Meta */}
+        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
+            <MapPin size={15} />
+            <span>Lives in <b>{currentUser.livesIn || 'Bangladesh'}</b></span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
+            <Briefcase size={15} />
+            <span>Works at <b>{currentUser.work || 'The FacePost'}</b></span>
           </div>
         </div>
 
-        {/* Stats Row */}
+        {/* Follower Stats Bar */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-around',
-          backgroundColor: 'var(--bg-input)',
-          borderRadius: 14,
-          padding: '12px 8px',
-          marginBottom: 16
+          gap: 16,
+          marginTop: 16,
+          padding: '12px 16px',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 12,
+          border: '1px solid var(--border-color)'
         }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>{currentUser.followersCount}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Followers</div>
+          <div>
+            <span style={{ fontSize: 16, fontWeight: 800 }}>{currentUser.friendsCount || '12'}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block' }}>Friends</span>
           </div>
           <div style={{ width: 1, backgroundColor: 'var(--border-color)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>{currentUser.friendsCount}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Friends</div>
+          <div>
+            <span style={{ fontSize: 16, fontWeight: 800 }}>{currentUser.followersCount || '45'}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block' }}>Followers</span>
           </div>
           <div style={{ width: 1, backgroundColor: 'var(--border-color)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>{currentUser.followingCount}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Following</div>
+          <div>
+            <span style={{ fontSize: 16, fontWeight: 800 }}>{currentUser.followingCount || '20'}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block' }}>Following</span>
           </div>
         </div>
+      </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button 
-            className="btn-primary" 
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-            onClick={onAddStory}
+      {/* Sub Tabs: Posts vs Menu & Settings */}
+      <div style={{ padding: '0 16px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border-color)', paddingBottom: 8 }}>
+          <button
+            onClick={() => setActiveSubTab('posts')}
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              borderRadius: 8,
+              border: 'none',
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: 'pointer',
+              backgroundColor: activeSubTab === 'posts' ? 'var(--primary)' : 'var(--bg-input)',
+              color: activeSubTab === 'posts' ? 'white' : 'var(--text-secondary)'
+            }}
           >
-            <span>+ Add to Story</span>
+            My Wall Posts
           </button>
-          <button style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            backgroundColor: 'var(--bg-input)',
-            border: 'none',
-            borderRadius: 12,
-            fontWeight: 700,
-            fontSize: 14,
-            color: 'var(--text-primary)',
-            cursor: 'pointer'
-          }}>
-            <Edit3 size={16} />
-            <span>Edit Profile</span>
+          <button
+            onClick={() => setActiveSubTab('shortcuts')}
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              borderRadius: 8,
+              border: 'none',
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: 'pointer',
+              backgroundColor: activeSubTab === 'shortcuts' ? 'var(--primary)' : 'var(--bg-input)',
+              color: activeSubTab === 'shortcuts' ? 'white' : 'var(--text-secondary)'
+            }}
+          >
+            Shortcuts & Settings
           </button>
         </div>
       </div>
 
-      <div style={{ height: 8, backgroundColor: 'var(--bg-main)' }} />
-
-      {/* Menu Shortcuts */}
-      <div style={{ padding: '16px' }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Shortcuts</h3>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          {menuItems.map((item, idx) => {
-            const IconComp = item.icon;
-            return (
-              <div
-                key={idx}
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 12,
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                <div style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  backgroundColor: 'var(--bg-input)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: item.color
-                }}>
-                  <IconComp size={20} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{item.label}</span>
-              </div>
-            );
-          })}
+      {/* Tab 1: User's Own Posts Feed */}
+      {activeSubTab === 'posts' && (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {userPosts.length > 0 ? (
+            userPosts.map(post => (
+              <PostCard
+                key={post.id}
+                post={post}
+                currentUser={currentUser}
+                onReact={onReactPost}
+                onAddComment={onAddComment}
+              />
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
+              <p style={{ margin: 0, fontSize: 14 }}>No wall posts yet. Share your first moment!</p>
+            </div>
+          )}
         </div>
+      )}
 
-        {/* System Settings & Theme Toggle */}
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Preferences</h3>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div
+      {/* Tab 2: Shortcuts & Settings Grid */}
+      {activeSubTab === 'shortcuts' && (
+        <div style={{ padding: '0 16px' }}>
+          {/* Shortcuts Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 10,
+            marginBottom: 20
+          }}>
+            {menuItems.map((item, idx) => {
+              const IconComp = item.icon;
+              return (
+                <div
+                  key={idx}
+                  onClick={item.action}
+                  style={{
+                    backgroundColor: 'var(--bg-card)',
+                    borderRadius: 12,
+                    padding: 14,
+                    border: '1px solid var(--border-color)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${item.color}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <IconComp size={20} color={item.color} />
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Theme Switcher */}
+          <div 
             onClick={onToggleTheme}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '12px',
+              padding: '14px 16px',
               backgroundColor: 'var(--bg-card)',
               borderRadius: 12,
               border: '1px solid var(--border-color)',
+              marginBottom: 10,
               cursor: 'pointer'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Moon size={20} color="var(--primary)" />
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Dark Mode</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {isDarkMode ? <Moon size={20} color="#8a3ab9" /> : <Sun size={20} color="#f7b125" />}
+              <span style={{ fontSize: 15, fontWeight: 600 }}>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>
             </div>
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <span style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>
               {isDarkMode ? 'ON' : 'OFF'}
             </span>
           </div>
 
-          <div
+          {/* Logout Button */}
+          <button
+            onClick={onLogout}
             style={{
+              width: '100%',
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              padding: '12px',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '14px 0',
               backgroundColor: 'var(--bg-card)',
-              borderRadius: 12,
               border: '1px solid var(--border-color)',
-              cursor: 'pointer'
-            }}
-          >
-            <Settings size={20} color="var(--text-secondary)" />
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Settings & Privacy</span>
-          </div>
-
-          <div
-            onClick={() => {
-              if (window.confirm('Are you sure you want to log out of The FacePost?')) {
-                onLogout();
-              }
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '12px',
-              backgroundColor: 'var(--bg-card)',
               borderRadius: 12,
-              border: '1px solid var(--border-color)',
+              color: '#e41e3f',
+              fontSize: 15,
+              fontWeight: 700,
               cursor: 'pointer',
-              color: '#ff2d55'
+              marginTop: 10
             }}
           >
-            <LogOut size={20} />
-            <span style={{ fontSize: 14, fontWeight: 700 }}>Log Out</span>
-          </div>
+            <LogOut size={18} />
+            <span>Log Out</span>
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
