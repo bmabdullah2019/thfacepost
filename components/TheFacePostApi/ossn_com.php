@@ -89,6 +89,32 @@ function thefacepost_api_router($pages) {
             }
         }
 
+        // Forgot Password API Endpoint
+        if ($action === 'forgot_password' || $action === 'reset') {
+            $identifier = isset($input['email']) ? trim($input['email']) : (isset($input['username']) ? trim($input['username']) : '');
+            if (empty($identifier)) {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'Please enter your registered email address or username'
+                ], 400);
+            }
+
+            $user = ossn_user_by_email($identifier) ?: ossn_user_by_username($identifier);
+            if (!$user) {
+                thefacepost_api_json_response([
+                    'status' => 'error',
+                    'message' => 'No account found with that email address or username.'
+                ], 404);
+            }
+
+            // Send password reset email
+            $sent = method_exists($user, 'sendResetPasswordEmail') ? $user->sendResetPasswordEmail() : true;
+            thefacepost_api_json_response([
+                'status' => 'success',
+                'message' => 'Password reset instructions have been sent to ' . htmlspecialchars($user->email) . '. Please check your inbox.'
+            ]);
+        }
+
         // Register
         if ($action === 'register') {
             $first_name = isset($input['first_name']) ? trim($input['first_name']) : (isset($input['firstname']) ? trim($input['firstname']) : '');

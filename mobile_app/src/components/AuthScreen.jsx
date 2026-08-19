@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, Mail, Calendar, AlertCircle, Loader2, Check } from 'lucide-react';
-import { loginWithServer, registerWithServer } from '../services/api';
+import { Eye, EyeOff, Lock, User, Mail, Calendar, AlertCircle, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
+import { loginWithServer, registerWithServer, forgotPasswordWithServer } from '../services/api';
 
 export default function AuthScreen({ onLoginSuccess }) {
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [viewMode, setViewMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+
+  // Forgot password form state
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
 
   // Register form state (Matches OSSN exact schema)
   const [regFirstName, setRegFirstName] = useState('');
@@ -41,6 +45,7 @@ export default function AuthScreen({ onLoginSuccess }) {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
 
     if (!loginIdentifier.trim() || !loginPassword.trim()) {
       setErrorMessage('Please enter both your mobile/email/username and password.');
@@ -61,6 +66,7 @@ export default function AuthScreen({ onLoginSuccess }) {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
 
     if (!regFirstName.trim() || !regLastName.trim()) {
       setErrorMessage('Please enter your first and last name.');
@@ -103,10 +109,30 @@ export default function AuthScreen({ onLoginSuccess }) {
     setLoading(false);
 
     if (result && result.status === 'success' && result.user) {
-      alert('Welcome to The FacePost! Your account has been created successfully.');
       onLoginSuccess(result.user, result.token);
     } else {
       setErrorMessage(result.message || 'Registration failed. The username or email might already be registered.');
+    }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (!forgotIdentifier.trim()) {
+      setErrorMessage('Please enter your registered email address or username.');
+      return;
+    }
+
+    setLoading(true);
+    const result = await forgotPasswordWithServer(forgotIdentifier.trim());
+    setLoading(false);
+
+    if (result && result.status === 'success') {
+      setSuccessMessage(result.message || 'Password reset link sent! Please check your email inbox.');
+    } else {
+      setErrorMessage(result.message || 'Could not find account. Please check your username or email.');
     }
   };
 
@@ -170,9 +196,30 @@ export default function AuthScreen({ onLoginSuccess }) {
         </div>
       )}
 
+      {/* Success Alert Box */}
+      {successMessage && (
+        <div style={{
+          backgroundColor: 'rgba(49, 162, 76, 0.12)',
+          border: '1px solid #31a24c',
+          borderRadius: 12,
+          padding: '12px 14px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 10,
+          color: '#31a24c',
+          fontSize: 13.5,
+          fontWeight: 600,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1, wordBreak: 'break-word' }}>{successMessage}</div>
+        </div>
+      )}
+
       {/* Auth Card Form */}
       <div className="auth-card">
-        {!isRegistering ? (
+        {viewMode === 'login' && (
           /* LOGIN VIEW */
           <form onSubmit={handleLoginSubmit} className="auth-form">
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>Log Into Your Account</h2>
@@ -227,15 +274,15 @@ export default function AuthScreen({ onLoginSuccess }) {
               {loading ? <Loader2 size={20} className="animate-spin" /> : 'Log In'}
             </button>
 
-            {/* Forgot Password */}
+            {/* In-App Forgot Password Toggle */}
             <div style={{ textAlign: 'center', margin: '4px 0' }}>
-              <a
-                href="#forgot"
-                onClick={(e) => { e.preventDefault(); alert('Please contact your administrator or visit https://thefacepost.com/ to reset password.'); }}
-                style={{ fontSize: 13.5, color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}
+              <button
+                type="button"
+                onClick={() => { setViewMode('forgot'); setErrorMessage(''); setSuccessMessage(''); }}
+                style={{ background: 'none', border: 'none', fontSize: 13.5, color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}
               >
                 Forgotten password?
-              </a>
+              </button>
             </div>
 
             {/* Divider */}
@@ -248,13 +295,66 @@ export default function AuthScreen({ onLoginSuccess }) {
             {/* Create New Account Button */}
             <button
               type="button"
-              onClick={() => { setIsRegistering(true); setErrorMessage(''); }}
+              onClick={() => { setViewMode('register'); setErrorMessage(''); setSuccessMessage(''); }}
               className="btn-auth-success"
             >
               Create New Account
             </button>
           </form>
-        ) : (
+        )}
+
+        {viewMode === 'forgot' && (
+          /* FORGOT PASSWORD VIEW */
+          <form onSubmit={handleForgotSubmit} className="auth-form">
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700 }}>Find Your Account</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+                Enter your registered email address or username to receive a password reset link.
+              </p>
+            </div>
+
+            <div className="auth-input-group">
+              <input
+                type="text"
+                placeholder="Email address or username"
+                value={forgotIdentifier}
+                onChange={(e) => setForgotIdentifier(e.target.value)}
+                className="auth-input-field"
+                autoCapitalize="none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn-auth-primary"
+              disabled={loading}
+            >
+              {loading ? <Loader2 size={20} className="animate-spin" /> : 'Send Reset Link'}
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: 6 }}>
+              <button
+                type="button"
+                onClick={() => { setViewMode('login'); setErrorMessage(''); setSuccessMessage(''); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <ArrowLeft size={16} /> Back to Log In
+              </button>
+            </div>
+          </form>
+        )}
+
+        {viewMode === 'register' && (
           /* REGISTRATION VIEW */
           <form onSubmit={handleRegisterSubmit} className="auth-form">
             <div>
@@ -347,7 +447,6 @@ export default function AuthScreen({ onLoginSuccess }) {
                 Date of birth:
               </div>
               <div className="auth-grid-3">
-                {/* Day */}
                 <select
                   value={regBirthDay}
                   onChange={(e) => setRegBirthDay(e.target.value)}
@@ -358,7 +457,6 @@ export default function AuthScreen({ onLoginSuccess }) {
                   ))}
                 </select>
 
-                {/* Month */}
                 <select
                   value={regBirthMonth}
                   onChange={(e) => setRegBirthMonth(e.target.value)}
@@ -369,7 +467,6 @@ export default function AuthScreen({ onLoginSuccess }) {
                   ))}
                 </select>
 
-                {/* Year */}
                 <select
                   value={regBirthYear}
                   onChange={(e) => setRegBirthYear(e.target.value)}
@@ -426,7 +523,7 @@ export default function AuthScreen({ onLoginSuccess }) {
             <div style={{ textAlign: 'center', marginTop: 4 }}>
               <button
                 type="button"
-                onClick={() => { setIsRegistering(false); setErrorMessage(''); }}
+                onClick={() => { setViewMode('login'); setErrorMessage(''); setSuccessMessage(''); }}
                 style={{
                   background: 'none',
                   border: 'none',

@@ -17,13 +17,24 @@ export async function loginWithServer(username, password) {
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseErr) {
+      // Server returned HTML (e.g. redirect or 404 because API component not yet uploaded/enabled on cPanel)
+      return {
+        status: 'error',
+        message: 'TheFacePost API is not yet activated on the live server (https://thefacepost.com). Please upload the components/TheFacePostApi folder to cPanel and enable it.'
+      };
+    }
+
     return data;
   } catch (err) {
     console.warn('Login request failed:', err);
     return {
       status: 'error',
-      message: 'Network error. Please check your internet connection or try again.'
+      message: 'Network connection failed. Please check your internet connection or server availability.'
     };
   }
 }
@@ -39,13 +50,53 @@ export async function registerWithServer(userData) {
       body: JSON.stringify(userData)
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseErr) {
+      return {
+        status: 'error',
+        message: 'TheFacePost API is not yet active on https://thefacepost.com. Please upload components/TheFacePostApi to cPanel.'
+      };
+    }
+
     return data;
   } catch (err) {
     console.warn('Registration request failed:', err);
     return {
       status: 'error',
-      message: 'Network error. Please check your internet connection and try again.'
+      message: 'Network connection failed. Please check your internet connection and try again.'
+    };
+  }
+}
+
+export async function forgotPasswordWithServer(identifier) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/forgot_password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ email: identifier, username: identifier })
+    });
+
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      return {
+        status: 'error',
+        message: 'The API is not reachable or responded unexpectedly.'
+      };
+    }
+    return data;
+  } catch (err) {
+    return {
+      status: 'error',
+      message: 'Network connection failed. Please try again.'
     };
   }
 }
@@ -58,18 +109,18 @@ export async function fetchFeedPosts() {
       cache: 'no-cache'
     });
     if (res.ok) {
-      const data = await res.json();
-      if (data && data.posts && data.posts.length > 0) {
-        localStorage.setItem('cached_live_posts', JSON.stringify(data.posts));
-        return data.posts;
-      }
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (data && data.status === 'success' && Array.isArray(data.posts)) {
+          return data.posts;
+        }
+      } catch (e) {}
     }
   } catch (err) {
-    console.warn('Live API fetch error, falling back to cache:', err);
+    console.warn('Live feed fetch failed, utilizing cached feed:', err);
   }
-
-  const cached = localStorage.getItem('cached_live_posts');
-  return cached ? JSON.parse(cached) : null;
+  return null;
 }
 
 export async function fetchLiveStories() {
@@ -79,18 +130,18 @@ export async function fetchLiveStories() {
       headers: { 'Accept': 'application/json' }
     });
     if (res.ok) {
-      const data = await res.json();
-      if (data && data.stories && data.stories.length > 0) {
-        localStorage.setItem('cached_live_stories', JSON.stringify(data.stories));
-        return data.stories;
-      }
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (data && data.status === 'success' && Array.isArray(data.stories)) {
+          return data.stories;
+        }
+      } catch (e) {}
     }
   } catch (err) {
-    console.warn('Stories fetch error:', err);
+    console.warn('Live stories fetch failed, utilizing cached stories:', err);
   }
-
-  const cached = localStorage.getItem('cached_live_stories');
-  return cached ? JSON.parse(cached) : null;
+  return null;
 }
 
 export async function fetchLiveReels() {
@@ -100,13 +151,16 @@ export async function fetchLiveReels() {
       headers: { 'Accept': 'application/json' }
     });
     if (res.ok) {
-      const data = await res.json();
-      if (data && data.reels && data.reels.length > 0) {
-        return data.reels;
-      }
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (data && data.status === 'success' && Array.isArray(data.reels)) {
+          return data.reels;
+        }
+      } catch (e) {}
     }
   } catch (err) {
-    console.warn('Reels fetch error:', err);
+    console.warn('Live reels fetch failed, utilizing cached reels:', err);
   }
   return null;
 }
