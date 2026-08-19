@@ -1,0 +1,1 @@
+<div style="margin:10px 0;" class="checkbox-block"><input id="kmli" type="checkbox"  class="ossn-checkbox-input" name="rememberlogin"/> <span><?php echo ossn_print('com:rememberlogin:keep:login'); ?></span></div>

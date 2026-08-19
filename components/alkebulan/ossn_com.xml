@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component xmlns="http://www.opensource-socialnetwork.org/v/3.0">
+    <name>Alkebulan AI</name>
+    <id>alkebulan</id>
+    <author>Development Team maina waweru</author>
+    <author_url>https://decoloniseafrica.com/</author_url>
+    <description>Advanced AI-powered component for OSSN with intelligent content analysis, smart recommendations, AI chat assistant, image generation from prompts, and comprehensive analytics. Full-featured AGI-ready architecture.</description>
+    <license>OSSN Component License</license>
+    <license_url>https://github.com/ossn/ossn-frontend/blob/master/LICENSE</license_url>
+    <version>2.0</version>
+    <requires>
+        <type>ossn_version</type>
+        <version>7.6</version>
+    </requires>
+</component>

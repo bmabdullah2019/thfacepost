@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component xmlns="http://www.opensource-socialnetwork.org/v/3.0">
+    <name>MultiUpload</name>
+    <id>MultiUpload</id>
+    <author>Core Team</author>
+    <description>A component that will allow you to upload multiple images in your post.</description>
+    <license>Commerical</license>
+    <author_url>https://www.openteknik.com/</author_url>
+    <license_url></license_url>
+    <version>2.4</version>
+	<requires>
+		<type>ossn_version</type>
+		<version>8.8</version>
+	</requires>
+</component>

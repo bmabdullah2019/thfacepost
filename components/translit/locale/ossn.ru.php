@@ -1,0 +1,1 @@
+<?php$ru = array(	'translit:title' => 'Транслит',	'translit:description' => 'Введите желаемый текст',	'translit:convert' => 'Перевести',	'translit:copy' => 'Скопировать',	'translit:copied' => 'Текст скопирован',);ossn_register_languages('ru', $ru); 

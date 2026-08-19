@@ -1,0 +1,7 @@
+SHARE POST 4.1
+- [B] Fixed the posts share not appearing on business page and groups.
+
+SHARE POST 4.0 
+==============
+- [E] Allow to share videos, polls, evenets. 
+- [E] Improved 

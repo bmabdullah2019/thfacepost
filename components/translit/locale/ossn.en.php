@@ -1,0 +1,1 @@
+<?php$en = array(	'translit:title' => 'Translit',	'translit:description' => 'Enter desired text',	'translit:convert' => 'Convert',	'translit:copy' => 'Copy',	'translit:copied' => 'Text copied',);ossn_register_languages('en', $en); 

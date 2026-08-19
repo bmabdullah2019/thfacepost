@@ -1,0 +1,1 @@
+<?php $license = array();$license["api_key"] = "d3d24165-d207-48ca-9878-01d58f208976";$license["secret"] = "12f2b4255210f20ab4a32773e040ee6e040f3aa8";

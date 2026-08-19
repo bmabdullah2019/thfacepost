@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component xmlns="http://www.opensource-socialnetwork.org/v/3.0">
+    <name>DeactivateWall</name>
+    <id>DeactivateWall</id>
+    <author>Dominik Lieger</author>
+    <description>DeactivateWall</description>
+    <license></license>
+    <author_url></author_url>
+    <license_url></license_url>
+    <version>1.9</version>
+	<requires>
+		<type>ossn_version</type>
+		<version>7.6</version>
+	</requires>
+</component>

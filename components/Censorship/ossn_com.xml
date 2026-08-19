@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component xmlns="http://www.opensource-socialnetwork.org/v/3.0">
+    <name>Censorship</name>
+    <id>Censorship</id>
+    <author>Core Team</author>
+    <description>A word censorship from comments or wall posts.</description>
+    <license>OPENTEKNIK LLC, COMMERCIAL LICENSE v1.0</license>
+    <author_url>https://www.openteknik.com/</author_url>
+    <license_url>https://www.openteknik.com/license/commercial</license_url>
+    <version>3.0</version>
+	<requires>
+		<type>ossn_version</type>
+		<version>8.2</version>
+	</requires>
+</component>

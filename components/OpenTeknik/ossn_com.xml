@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component xmlns="http://www.opensource-socialnetwork.org/v/3.0">
+    <name>OpenTeknik API</name>
+    <id>OpenTeknik</id>
+    <author>Core Team</author>
+    <description>OpenTeknik API.</description>
+    <license>OPENTEKNIK LLC, COMMERCIAL LICENSE v1.0</license>
+    <author_url>https://www.openteknik.com/</author_url>
+    <license_url>https://www.openteknik.com/license/commercial-license-v1</license_url>
+    <version>1.1</version>
+	<requires>
+		<type>ossn_version</type>
+		<version>6.1</version>
+	</requires>
+</component>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component xmlns="http://www.opensource-socialnetwork.org/v/3.0">
+    <name>Styler</name>
+    <id>Styler</id>
+    <author>Core Team</author>
+    <description>A differnt styles/colors switcher.</description>
+    <license>OPENTEKNIK LLC, COMMERCIAL LICENSE v1.0</license>
+    <author_url>https://www.openteknik.com/</author_url>
+    <license_url>https://www.openteknik.com/license/commercial</license_url>
+    <version>2.0</version>
+	<requires>
+		<type>ossn_version</type>
+		<version>9.3</version>
+	</requires>
+</component>

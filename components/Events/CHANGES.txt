@@ -1,0 +1,52 @@
+EVENTS 9.0
+- [E] Updated UI
+
+EVENTS 8.9
+- [E] Updated for business pages
+
+EVENTS 7.2
+- [E]  Updated for OSSN 8.0
+
+EVENTS 7.0
+- [E] Added events calendar for groups and site wide
+- [E] Allow only future dates to be selected
+
+EVENT  6.0
+- [B]  Interested/Non-interested/going if clicked with 0 counter it shows error.
+
+EVENTS 4.4
+- [E] Upgraded for OSSN 6.5
+
+EVENTS 4.3
+- [E] Fix non-translated save text.
+
+EVENTS 4.2
+- [B] Event add date is not translated when different langauge in use.
+
+EVENTS 4.1
+- [B] As of OSSN 6.1 we need to set $vars['full_view'] = false; in entity view comments params to avoid showing all comments.
+ 
+EVENTS 3.0
+* Added support for groups.
+  You need to delete old events from administrator panel and install new, it will upgrade the database itself.  
+  Please do not replace files,  follow administrator panel.
+
+EVENTS 2.1
+* Remove country as its covered by location
+
+EVENTS 2.0
+* Add a option to sort a events by dated created (default order) , you may change that to the old order by setting EVENTS_SORT_BY_DATE to false in the ossn_com.php file
+* Add a wall container button.
+
+EVENTS 1.8
+* Fixed enter the location issue
+* Hide buttons interested,  not...etc for non-loggedin users
+* Fix the issues with buttons due to the bug in core
+
+EVENTS 1.2
+
+* Removed Google API
+
+EVENTS 1.1
+
+* Fixed , the not interested button not working.

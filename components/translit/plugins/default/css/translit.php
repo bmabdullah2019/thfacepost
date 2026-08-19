@@ -1,0 +1,1 @@
+li.menu-section-item-translit:before {	/* this replaces the icon '>' or content: "\f11c" */    content: "\f11c" !important}#form_comment_text { width:100%;height:150px;}

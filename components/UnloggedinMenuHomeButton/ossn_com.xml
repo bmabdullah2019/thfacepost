@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component xmlns="http://www.opensource-socialnetwork.org/v/3.0">
+    <name>UnloggedinMenuHomeButton</name>
+    <id>UnloggedinMenuHomeButton</id>
+    <description>adds a Home button to the UnloggedinMenu directing to the startpage of your site</description>
+    <author>Michael Zülsdorff</author>
+    <author_url>https://comz.z-mans.net/</author_url>
+    <license>GNU General Public License v2</license>
+    <license_url>https://www.gnu.de/documents/gpl-2.0.en.html</license_url>
+    <version>8.1</version>
+	<requires>
+		<type>ossn_version</type>
+		<version>8.9</version>
+	</requires>
+	<requires>
+		<type>ossn_component</type>
+		<name>UnLoggedinMenu</name>
+		<version>1.1</version>
+	</requires>	
+</component>

@@ -1,0 +1,4 @@
+HASHTAGS 7.1
+
+- [E] Trending only show trends for business pages and user public posts
+

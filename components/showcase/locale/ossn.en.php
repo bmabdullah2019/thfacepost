@@ -1,0 +1,1 @@
+<?php$en = array(	'showcase:title' => 'ShowCase Gallery',	'showcase:menu:title' => 'ShowCase',);ossn_register_languages('en', $en); 

@@ -1,0 +1,2 @@
+<input type="text" value="<?php echo ossn_site_url("polls/embed/{$params['poll']->guid}");?>"  />
+<iframe style="border:none;min-height:200px;width:450px;overflow-x: hidden;" src="<?php echo ossn_site_url("polls/embed/{$params['poll']->guid}");?>"></iframe>

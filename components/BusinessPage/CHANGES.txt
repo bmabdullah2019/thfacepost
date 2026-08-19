@@ -1,0 +1,49 @@
+BUSINESS PAGES 8.1
+- [B] Fixes bug with pages edit page
+- [B] Fixes php errors
+
+BUSINESS PAGES 8.0
+- [E] Re designed UI
+- [E] Allowed to upload events, videos, polls, new about fields.
+
+BUSINESS PAGE 2.8
+* [B] pages posts should be OSSN_PUBLIC
+
+BUSINESS PAGES 2.6
+* Cover URL when adding is wrong
+
+BUSINESS PAGES 2.5
+* Location JS issue.
+
+BUSINESS PAGES 2.4
+* Upgraded for OSSN 6.5
+
+BUSINESS PAGES 2.3
+* ADDED support for CDN
+
+BUSINESS PAGES 2.2
+* Add a search page type for business pages
+
+BUSINESS PAGES 2.1
+* Enabling component shows all comments instead of limited.
+
+BUSINESS PAGES 1.10
+* Fixed the likes issue, its not showing reactions menu.
+
+Business Page 1.4
+==================
+
+* Fixed the icon issue if no page icon added
+* Fixed broken notifcation messages.
+* Don't allow other users to post as page of others.
+
+Business Pages 1.3
+====================
+
+* Fix some borken statements issues.
+
+Business Pages 1.1
+====================
+
+* Fix Theme break for goblue
+* Only page owner and admin should able to see the page edit/delete buttons

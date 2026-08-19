@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<theme xmlns="http://www.opensource-socialnetwork.org/theme/v/3.0">
+    <name>Social</name>
+    <id>social</id>
+    <author>Core Team</author>
+    <author_url>https://www.openteknik.com/</author_url>	
+    <license>SOFTLAB24 COMMERICAL ITEMS LICENSE v1</license>
+    <author_url>https://www.openteknik.com/</author_url>
+    <license_url>https://www.openteknik.com/licence</license_url>
+    <version>9.3</version>
+	<requires>
+		<type>ossn_version</type>
+		<version>9.3</version>
+	</requires>
+</theme>

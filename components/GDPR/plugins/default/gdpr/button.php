@@ -1,0 +1,2 @@
+<p class="alert alert-warning"><?php echo ossn_print('gdpr:delete:account:notice');?></p>
+<a class="ossn-make-sure btn btn-sm btn-danger" href="<?php echo ossn_site_url('action/gdpr/delete/account', true);?>"><?php echo ossn_print('gdpr:deleteaccount');?></a>

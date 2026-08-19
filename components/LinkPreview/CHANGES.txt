@@ -1,0 +1,34 @@
+LINK PREVIEW 7.1
+- FB wasn't working
+
+LINK PREVIEW 7.0
+- Re-created the parser
+- Support TikTok
+- Removed non-image as it looks ugly.
+
+LINK PREVIEW 6.1
+-Removed Encoding class and fixed DOMHTMLDocument to UTF8
+
+LINK PREVIEW 5.9
+- Fix hindi, tamil langauge issue
+
+LINKPREVIEW 5.6
+* function readLink() set header language to site language.
+* If arabic then ignore fixutf8
+
+LINKPREVIEW 5.5
+* Change order to og: tag first then itemprop.
+
+LINKPREVIEW 5.2
+* Fix issues with the encoding,  use input() instead before saving into database
+* Add a option to show a mixed contents means if your are using https and the link preview image is http you may get ssl errors, to avoid to load that image you may set LinkPreview_ShowMixedContents in ossn_com.php to false.
+LINK PREVIEW 4.4
+* Fixed issue with the emojis
+
+LINK PREVIEW 4.0-4.1
+* Fixed issue with the GeneralParser (a 3rd party library)
+* The description if not encoded cause the issue.
+
+LINK PREVIEW 3.0
+================
+* Fixed issues with media websites (youtube, vemo..etc).

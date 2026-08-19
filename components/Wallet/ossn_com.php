@@ -1,0 +1,474 @@
+<?php
+/**
+ * Open Source Social Network
+ *
+ * @package   Wallet
+ * @author    OSSN Core Team <info@openteknik.com>
+ * @copyright (c) Engr. Syed Arsalan Hussain Shah (OpenTeknik LLC)
+ * @license   OpenTeknik LLC, COMMERCIAL LICENSE  https://www.openteknik.com/license/commercial-license-v1
+ * @link      https://www.openteknik.com/
+ */
+define('__Wallet__', ossn_route()->com . 'Wallet/');
+define('WALLET_CURRENCY_CODE', 'USD');
+define('WALLET_MINIMUM_LOAD', 10);
+define('WALLET_SEAMLESS_CHARGE', 1);
+
+ossn_register_class(array(
+		'Wallet\Notification'            => __Wallet__ . 'classes/Notification.php',
+		'Wallet\Wallet'                  => __Wallet__ . 'classes/Wallet.php',
+		'Wallet\DebitException'          => __Wallet__ . 'classes/Exception/Debit.php',
+		'Wallet\CreditException'         => __Wallet__ . 'classes/Exception/Credit.php',
+		'Wallet\NoUserException'         => __Wallet__ . 'classes/Exception/NoUser.php',
+		'Wallet\GatewayException'        => __Wallet__ . 'classes/Exception/Gateway.php',
+		'Wallet\GeneralException'        => __Wallet__ . 'classes/Exception/General.php',
+		'Wallet\Gateway\PayPal'          => __Wallet__ . 'classes/Gateway/PayPal.php',
+		'Wallet\Gateway\Stripe'          => __Wallet__ . 'classes/Gateway/Stripe.php',
+		'Wallet\Gateway\Stripe\Seamless' => __Wallet__ . 'classes/Gateway/Stripe/Seamless.php',
+		'Wallet\Gateway\Iyzipay'         => __Wallet__ . 'classes/Gateway/Iyzipay.php',
+		'Wallet\Log'                     => __Wallet__ . 'classes/Log.php',
+));
+/**
+ * Wallet component initialize
+ *
+ * @return void
+ */
+function wallet_init() {
+		ossn_extend_view('css/ossn.default', 'css/wallet/site');
+		ossn_extend_view('js/ossn.site', 'js/wallet');
+
+		ossn_new_js('wallet.card', 'wallet/card/js');
+
+		if(ossn_isLoggedin()) {
+				ossn_register_com_panel('Wallet', 'settings');
+
+				ossn_register_page('wallet', 'wallet_page_handler');
+				ossn_register_action('wallet/charge/paypal', __Wallet__ . 'actions/charge/paypal.php');
+
+				ossn_register_action('wallet/charge/card', __Wallet__ . 'actions/charge/stripe/card.php');
+				ossn_register_action('wallet/charge/card/verify', __Wallet__ . 'actions/charge/stripe/verify.php');
+
+				ossn_register_action('wallet/charge/card/future', __Wallet__ . 'actions/charge/stripe/setupintent/future.php');
+				ossn_register_action('wallet/charge/card/future/save', __Wallet__ . 'actions/charge/stripe/setupintent/save.php');
+				ossn_register_action('wallet/charge/card/delete', __Wallet__ . 'actions/charge/stripe/setupintent/delete.php');
+				ossn_register_action('wallet/billing/address', __Wallet__ . 'actions/user/billing.php');
+
+				ossn_register_sections_menu('newsfeed', array(
+						'name'    => 'wallet',
+						'text'    => ossn_print('wallet'),
+						'url'     => ossn_site_url('wallet/overview'),
+						'section' => 'links',
+				));
+				//billing address
+				ossn_add_hook('profile', 'edit:section', 'wallet_billing_address_profile_section');
+				ossn_register_menu_item('profile/edit/tabs', array(
+						'name' => 'emailnotifications',
+						'href' => '?section=billingaddress',
+						'text' => ossn_print('wallet:billingaddress'),
+				));
+		} else {
+				ossn_extend_view('forms/signup/before/submit', 'wallet/signup_billing_address');
+				ossn_register_callback('action', 'load', 'wallet_validate_signup_billing');
+				ossn_register_callback('user', 'created', 'wallet_signup_billing_save');
+		}
+		if(ossn_isAdminLoggedin()) {
+				ossn_register_action('wallet/admin/settings/tax', __Wallet__ . 'actions/admin/tax.php');
+				ossn_register_action('wallet/admin/settings', __Wallet__ . 'actions/admin/settings.php');
+				ossn_register_action('wallet/admin/seamless/remove/block', __Wallet__ . 'actions/admin/card/delete.php');
+
+				//change balance or add balance menu
+				ossn_register_action('wallet/alter/balance', __Wallet__ . 'actions/alter.php');
+				ossn_register_callback('page', 'load:profile', 'wallet_user_profile_balance_change_menu');
+		}
+		ossn_add_hook('services', 'methods', 'wallet_api_register');
+		ossn_register_callback('user', 'delete', 'wallet_user_delete');
+}
+/**
+ * Address validate
+ *
+ * @eturn void
+ */
+function wallet_validate_signup_billing($callback, $type, $params) {
+		if($params['action'] == 'user/register' && wallet_stripe_deduct_tax()) {
+				header('Content-Type: application/json');
+				$address = input('address');
+				$country = input('country');
+				$city    = input('city');
+				$postal  = input('postal_code');
+				$state   = input('state');
+
+				if(empty($address) || empty($country) || empty($city) || empty($postal) || empty($state)) {
+						echo json_encode(array(
+								'dataerr' => ossn_print('wallet:billing:fieldsrequired'),
+						));
+						exit();
+				}
+
+				// Validate city and state (only letters, spaces, and hyphens allowed)
+				if(preg_match('/[^A-Za-z\s\-]/', $city)) {
+						echo json_encode(array(
+								'dataerr' => ossn_print('wallet:billing:invalid_city'),
+						));
+						exit();
+				}
+				if(preg_match('/[^A-Za-z\s\-]/', $state)) {
+						echo json_encode(array(
+								'dataerr' => ossn_print('wallet:billing:invalid_state'),
+						));
+						exit();
+				}
+
+				if(!validate_postal_code($country, $postal)) {
+						echo json_encode(array(
+								'dataerr' => ossn_print('wallet:billing:invalid_postal'),
+						));
+						exit();
+				}
+		}
+}
+/**
+ * Save user billing
+ *
+ * @return void
+ */
+function wallet_signup_billing_save($callback, $type, $params) {
+		if(isset($params['guid']) && wallet_stripe_deduct_tax()) {
+				$user = ossn_user_by_guid($params['guid']);
+				if($user) {
+						// Collect billing inputs
+						$address = input('address');
+						$country = input('country');
+						$city    = input('city');
+						$postal  = input('postal_code');
+						$state   = input('state');
+
+						// Verify all fields are set and not empty before saving
+						if($address && $country && $city && $postal && $state) {
+								$user->data->billing_address = $address;
+								$user->data->billing_city    = $city;
+								$user->data->billing_postal  = $postal;
+								$user->data->billing_state   = $state;
+								$user->data->billing_country = $country;
+								$user->save();
+						}
+				}
+		}
+}
+
+/**
+ * Postal code validation based on country
+ *
+ * @param string $country Country TWO digits
+ * @param mixed  $postal  Postal code int|string
+ *
+ * @return booleam
+ */
+function validate_postal_code($country, $postal) {
+		switch ($country) {
+		case 'US':
+				return preg_match('/^\d{5}(-\d{4})?$/', $postal);
+		case 'CA':
+				return preg_match('/^[A-Za-z]\d[A-Za-z][\s]?\d[A-Za-z]\d$/', $postal);
+		case 'GB':
+				return preg_match('/^([A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2})$/i', $postal);
+		case 'AU':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'DE':
+				return preg_match('/^\d{5}$/', $postal);
+		case 'FR':
+				return preg_match('/^\d{5}$/', $postal);
+		case 'IT':
+				return preg_match('/^\d{5}$/', $postal);
+		case 'ES':
+				return preg_match('/^\d{5}$/', $postal);
+		case 'NL':
+				return preg_match('/^\d{4}\s?[A-Za-z]{2}$/', $postal);
+		case 'CH':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'BE':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'JP':
+				return preg_match('/^\d{3}-\d{4}$/', $postal);
+		case 'MX':
+				return preg_match('/^\d{5}$/', $postal);
+		case 'BR':
+				return preg_match('/^\d{5}-\d{3}$/', $postal);
+		case 'ZA':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'IN':
+				return preg_match('/^\d{6}$/', $postal);
+		case 'NZ':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'SE':
+				return preg_match('/^\d{3}\s?\d{2}$/', $postal);
+		case 'AT':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'DK':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'NO':
+				return preg_match('/^\d{4}$/', $postal);
+		case 'FI':
+				return preg_match('/^\d{5}$/', $postal);
+		case 'IE':
+				return preg_match('/^[A-Z0-9]{1,2}\d{1,2}\s?[A-Z0-9]{1,2}$/i', $postal);
+		default:
+				return preg_match('/^[A-Za-z0-9\s\-]+$/', $postal);
+		}
+}
+/**
+ * Wallet tax type
+ *
+ * @return string
+ */
+function wallet_stripe_tax_type() {
+		$settings = wallet_get_settings();
+		if($settings && isset($settings->tax_type) && !empty($settings->tax_type)) {
+				return $settings->tax_type;
+		}
+		return 'inclusive';
+}
+/**
+ * Deduct tax
+ *
+ * @return boolean
+ */
+function wallet_stripe_deduct_tax() {
+		$settings = wallet_get_settings();
+		if($settings && isset($settings->tax_enabled) && $settings->tax_enabled == 'yes') {
+				return true;
+		}
+		return false;
+}
+/**
+ * Register a page for billing address
+ *
+ * @return string|void
+ */
+function wallet_billing_address_profile_section($hook, $type, $return, $params) {
+		if($params['section'] == 'billingaddress') {
+				return ossn_view_form('wallet/user/billing_address', array(
+						'action' => ossn_site_url() . 'action/wallet/billing/address',
+				));
+		}
+}
+/**
+ * Alter user balance menu
+ *
+ * @return void
+ * @access private
+ */
+function wallet_user_profile_balance_change_menu($name, $type, $params) {
+		$guid = ossn_get_page_owner_guid();
+		//ossn_site_url("action/wallet/alter/balance?guid={$guid}", true)
+		ossn_register_menu_item('profile_extramenu', array(
+				'name'      => 'wallet_balance_alter_profile',
+				'text'      => ossn_print('wallet:change:user:balance'),
+				'href'      => 'javascript:void(0)',
+				'id'        => 'wallet-alter-balance',
+				'data-guid' => $guid,
+		));
+}
+/**
+ * Wallet component register a API endpoints
+ *
+ * @return array
+ */
+function wallet_api_register($hook, $type, $methods, $params) {
+		$methods['v1.0'][] = 'wallet/debit';
+		$methods['v1.0'][] = 'wallet/credit';
+		return $methods;
+}
+/**
+ * Wallet page handler
+ *
+ * @return array
+ */
+function wallet_page_handler($pages) {
+		if(empty($pages[0])) {
+				ossn_error_page();
+		}
+		switch ($pages[0]) {
+		case 'overview':
+				$title               = ossn_print('wallet:overview');
+				$contents['content'] = ossn_plugin_view('wallet/overview');
+				$content             = ossn_set_page_layout('newsfeed', $contents);
+				echo ossn_view_page($title, $content);
+				break;
+		case 'alter':
+				if(!ossn_isAdminLoggedin()) {
+						ossn_error_page();
+				}
+				echo ossn_plugin_view('output/ossnbox', array(
+						'title'    => ossn_print('wallet:change:user:balance'),
+						'contents' => ossn_plugin_view('wallet/balance_alter'),
+						'callback' => '#ossn-wallet-balance-alter-btn',
+				)); 
+				break;
+		case 'iyzipay_callback':
+				$token = input('token');
+				if(empty($token)) {
+						ossn_error_page();
+				}
+				$iyzipay  = new Wallet\Gateway\Iyzipay();
+				$callback = $iyzipay->callback($token);
+
+				if($callback->getPaymentStatus() == 'SUCCESS') {
+						$amount = $callback->getpaidPrice();
+
+						$wallet = new \Wallet\Wallet(ossn_loggedin_user()->guid);
+						$wallet->credit($amount, 'Load via Card');
+
+						redirect('wallet/overview');
+				}
+				break;
+		case 'seamless':
+				$user = ossn_loggedin_user();
+				if(isset($user->wallet_stripe_payment_method_id) && !empty($user->wallet_stripe_payment_method_id)) {
+						redirect('wallet/overview');
+				}
+				$methods = wallet_enabled_payment_methods();
+				if(!in_array('stripe', $methods)) {
+						ossn_trigger_message(ossn_print('wallet:method:not:enabled'), 'error');
+						redirect('wallet/overview');
+				}
+				ossn_load_js('wallet.card');
+
+				$tier = false;
+				$guid = false;
+
+				$tier = isset($pages[1]) ? $pages[1] : false;
+				$guid = isset($pages[2]) ? $pages[2] : false;
+
+				if(empty($tier) || empty($guid) || !com_is_active('MembershipTier')) {
+						$tier = false;
+						$guid = false;
+				}
+
+				$title               = ossn_print('wallet:savepayment:method');
+				$contents['content'] = ossn_plugin_view('wallet/card/seamless', array(
+						'tier' => $tier,
+						'guid' => $guid,
+				));
+				$content = ossn_set_page_layout('newsfeed', $contents);
+				echo ossn_view_page($title, $content);
+				break;
+		case 'seamlessfailed':
+				$methods = wallet_enabled_payment_methods();
+				if(!in_array('stripe', $methods)) {
+						ossn_trigger_message(ossn_print('wallet:method:not:enabled'), 'error');
+						redirect('wallet/overview');
+				}
+				$title               = ossn_print('wallet:charge:failed');
+				$contents['content'] = ossn_plugin_view('wallet/charge/seamlessfailed');
+				$content             = ossn_set_page_layout('newsfeed', $contents);
+				echo ossn_view_page($title, $content);
+				break;
+		case 'charge':
+				$methods = wallet_enabled_payment_methods();
+				switch ($pages[1]) {
+				case 'paypal':
+						if(!in_array('paypal', $methods)) {
+								ossn_trigger_message(ossn_print('wallet:method:not:enabled'), 'error');
+								redirect('wallet/overview');
+						}
+						$title               = ossn_print('wallet:charge:paypal');
+						$contents['content'] = ossn_plugin_view('wallet/charge/paypal');
+						$content             = ossn_set_page_layout('newsfeed', $contents);
+						echo ossn_view_page($title, $content);
+						break;
+				case 'card':
+						if(!in_array('stripe', $methods)) {
+								ossn_trigger_message(ossn_print('wallet:method:not:enabled'), 'error');
+								redirect('wallet/overview');
+						}
+						ossn_load_js('wallet.card');
+						$title               = ossn_print('wallet:charge:card');
+						$contents['content'] = ossn_plugin_view('wallet/charge/card');
+						$content             = ossn_set_page_layout('newsfeed', $contents);
+						echo ossn_view_page($title, $content);
+						break;
+				case 'iyzipay':
+						if(!in_array('iyzipay', $methods)) {
+								ossn_trigger_message(ossn_print('wallet:method:not:enabled'), 'error');
+								redirect('wallet/overview');
+						}
+						$title               = ossn_print('wallet:charge:iyzipay');
+						$contents['content'] = ossn_plugin_view('wallet/charge/iyzipay');
+						$content             = ossn_set_page_layout('newsfeed', $contents);
+						echo ossn_view_page($title, $content);
+						break;
+				case 'failed':
+						$title               = ossn_print('wallet:charge:failed');
+						$contents['content'] = ossn_plugin_view('wallet/charge/failed');
+						$content             = ossn_set_page_layout('newsfeed', $contents);
+						echo ossn_view_page($title, $content);
+						break;
+				default:
+						ossn_error_page();
+				}
+				break;
+		default:
+				ossn_error_page();
+		}
+}
+/**
+ * Delete user wallet when user deleted
+ *
+ * @return void
+ * @access private
+ */
+function wallet_user_delete($callback, $type, $params) {
+		$guid = $params['entity']->guid;
+		$logs = new Wallet\Log();
+		$list = $logs->show($guid, array(
+				'page_limit' => false,
+		));
+		if($list) {
+				foreach ($list as $log) {
+						$log->deleteObject();
+				}
+		}
+}
+/**
+ * Wallet settings
+ *
+ * @return boolean|object
+ */
+function wallet_get_settings() {
+		$com = new \OssnComponents();
+		return $com->getSettings('Wallet');
+}
+/**
+ * Wallet enabled payment methods
+ *
+ * @return boolean|array
+ */
+function wallet_enabled_payment_methods() {
+		$settings = wallet_get_settings();
+		if($settings && isset($settings->payment_methods)) {
+				return json_decode($settings->payment_methods, true);
+		}
+		return false;
+}
+/**
+ * Show blocked users
+ *
+ * @return boolean|integer|array
+ */
+function wallet_get_seamless_blocked_users($count = false) {
+		$users = new \OssnUser();
+		$args  = array(
+				'entities_pairs' => array(
+						array(
+								'name'   => 'wallet_stripe_payment_seamless_fail_count',
+								'value'  => true,
+								'wheres' => '[this].value >= 4',
+						),
+				),
+		);
+		if($count === true) {
+				$args['count'] = true;
+		}
+		$list = $users->searchUsers($args);
+		return $list;
+}
+ossn_register_callback('ossn', 'init', 'wallet_init');

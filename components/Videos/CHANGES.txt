@@ -1,0 +1,59 @@
+VIDEOS 10.0
+- [E] Changes for business pages
+
+VIDEOS 9.5
+- [E] Show ffmpeg version
+
+VIDEOS 9.2
+- [E] Session Write Close
+
+VIDEOS 9.1
+- [E] Removed old upgrade script
+
+VIDEOS 9.0
+- [B] Player not working on pagination
+- [E] Updated player UI
+
+VIDEOS 8.9
+==========
+- [E] Upgraded for OSSN 6.5
+
+VIDEOS 8.8
+==========
+- [B] Changed video conversion status checking from 1s to 10 seconds.
+
+VIDEOS 8.7
+=========
+- [B] Iphone sending upper case extensions causing video failing to add.
+
+VIDEOS 8.3
+===========
+- [B] Videos upload twice due to video.init js loaded twice. Issue introduced in 8.2
+
+VIDEOS 8.2
+===========
+- [E] Unload multiple JS files
+
+VIDEOS 8.1
+==========
+- [B] Videos not plating due to CDN
+
+VIDEOS 8.0
+===========
+- [E] allow upload on CDN
+- [E] allow to delete videos during conversion
+
+VIDEOS  7.2
+============
+- [B] Videos cron.php was not able to run due to SAPI from cpanel cron job not returning cli rather cgi-fcgi. Improved the detection system.
+
+VIDEOS  7.1
+============
+- [B] As of OSSN 6.1 we need to set $vars['full_view'] = false; in entity view comments params to avoid showing all comments.
+
+VIDEOS  7.0
+============
+
+- Adds a cron job to do a video conversion in backend.
+- Adds a video pending conversion page only for admins and video owner.
+- Adds a video delete option if video conversion failed.

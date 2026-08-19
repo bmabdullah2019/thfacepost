@@ -1,0 +1,1 @@
+<?php$ru = array(	'showcase:title' => 'Обзор фотографий',	'showcase:menu:title' => 'ShowCase',);ossn_register_languages('ru', $ru); 

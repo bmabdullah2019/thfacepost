@@ -1,0 +1,1 @@
+<?php/** * Open Source Social Network * * @package   Chess * @author    AT3META <at3meta@3ncircle.com> * @copyright 2023 3NCIRCLE Inc. * @license   General Public Licence V3 * @link      https://www.gnu.org/licenses/gpl-3.0.en.html */$en = array(	'chess' => 'CHESS',	'com:ossn:chess' => 'FRITZ',);ossn_register_languages('en', $en); 

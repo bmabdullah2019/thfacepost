@@ -1,0 +1,13 @@
+How to obtain facebook API Details
+===================================
+
+1.) Go to developers.facebook.com
+2.) Create a new APP
+3.) In settings page , add a OAuth redirect URI to yourwebsite.com/social_login/facebook 
+4.) Find your APP ID and APP secret and save them in yourwebsite.com/administrator/component/SocialLogin 
+
+
+-----------
+
+
+1. https://developers.google.com/identity/sign-in/web/sign-in
