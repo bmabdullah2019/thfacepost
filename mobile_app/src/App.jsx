@@ -12,7 +12,15 @@ import ProfileMenuTab from './components/ProfileMenuTab';
 import SearchModal from './components/SearchModal';
 import AuthScreen from './components/AuthScreen';
 
-import { fetchFeedPosts, fetchLiveStories, fetchLiveReels } from './services/api';
+import {
+  fetchFeedPosts,
+  fetchLiveStories,
+  fetchLiveReels,
+  createLivePost,
+  reactLivePost,
+  commentLivePost,
+  fetchUserProfile
+} from './services/api';
 
 import {
   initialStories,
@@ -33,7 +41,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Data States
+  // Data States (Loaded dynamically with local persistence)
   const [stories, setStories] = useState(() => {
     const saved = localStorage.getItem('facepost_stories');
     return saved ? JSON.parse(saved) : initialStories;
@@ -65,37 +73,45 @@ export default function App() {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
 
-  // Load Live Data from https://thefacepost.com/ on mount if authenticated
+  // Load Live Data from Server on mount or user login
   useEffect(() => {
     if (!currentUser) return;
 
+    let isMounted = true;
     async function loadLiveServerData() {
       setIsSyncing(true);
       try {
-        const [livePosts, liveStories, liveReels] = await Promise.all([
+        const [livePosts, liveStories, liveReels, liveProfile] = await Promise.all([
           fetchFeedPosts(),
           fetchLiveStories(),
-          fetchLiveReels()
+          fetchLiveReels(),
+          fetchUserProfile(currentUser.username)
         ]);
 
-        if (livePosts && livePosts.length > 0) {
+        if (!isMounted) return;
+
+        if (livePosts && Array.isArray(livePosts) && livePosts.length > 0) {
           setPosts(livePosts);
         }
-        if (liveStories && liveStories.length > 0) {
+        if (liveStories && Array.isArray(liveStories) && liveStories.length > 0) {
           setStories(liveStories);
         }
-        if (liveReels && liveReels.length > 0) {
+        if (liveReels && Array.isArray(liveReels) && liveReels.length > 0) {
           setReels(liveReels);
+        }
+        if (liveProfile) {
+          setCurrentUser(prev => ({ ...prev, ...liveProfile }));
         }
       } catch (e) {
         console.warn('Live synchronization error:', e);
       } finally {
-        setIsSyncing(false);
+        if (isMounted) setIsSyncing(false);
       }
     }
 
     loadLiveServerData();
-  }, [currentUser]);
+    return () => { isMounted = false; };
+  }, [currentUser?.username]);
 
   // Sync to LocalStorage
   useEffect(() => {
@@ -160,10 +176,33 @@ export default function App() {
     setIsDarkMode(!isDarkMode);
   };
 
-  const handleAddNewPost = (newPost) => {
-    setPosts([newPost, ...posts]);
+  // Dynamic Live Post Creator
+  const handleAddNewPost = async (newPostData) => {
+    // 1. Instantly update UI for snappy native feel
+    const optimisticPost = {
+      ...newPostData,
+      author: {
+        id: currentUser.id,
+        name: currentUser.name,
+        username: currentUser.username,
+        avatar: currentUser.avatar,
+        isOnline: true
+      }
+    };
+    setPosts([optimisticPost, ...posts]);
+
+    // 2. Publish to live server
+    try {
+      const serverPost = await createLivePost(newPostData.content, currentUser.username);
+      if (serverPost) {
+        setPosts(prev => [serverPost, ...prev.filter(p => p.id !== optimisticPost.id)]);
+      }
+    } catch (err) {
+      console.warn('Background live post failed, retained locally:', err);
+    }
   };
 
+  // Dynamic Reaction Handler
   const handleReactPost = (postId, reactionType) => {
     setPosts(prevPosts =>
       prevPosts.map(post => {
@@ -188,9 +227,14 @@ export default function App() {
         return post;
       })
     );
+
+    // Sync to server in background
+    reactLivePost(postId, reactionType, currentUser.username);
   };
 
-  const handleAddComment = (postId, newComment) => {
+  // Dynamic Comment Handler
+  const handleAddComment = async (postId, newComment) => {
+    // 1. Optimistic UI update
     setPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
@@ -203,6 +247,9 @@ export default function App() {
         return post;
       })
     );
+
+    // 2. Sync to server in background
+    commentLivePost(postId, newComment.text, currentUser.username);
   };
 
   const handleLikeReel = (reelId) => {
