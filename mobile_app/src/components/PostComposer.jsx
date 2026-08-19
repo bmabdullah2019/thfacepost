@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Image, Video, Smile, Globe, Users, Lock, X, Tag, MapPin, Camera } from 'lucide-react';
+import { Image, Smile, Video, Globe, Users, X } from 'lucide-react';
 
 export default function PostComposer({ 
   currentUser, 
@@ -15,14 +15,15 @@ export default function PostComposer({
   const [showFeelingsPicker, setShowFeelingsPicker] = useState(false);
   const fileInputRef = useRef(null);
 
+  const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z' clip-rule='evenodd'/%3E%3C/svg%3E";
+
   const feelingsList = [
     { label: 'Happy', emoji: '😊' },
     { label: 'Blessed', emoji: '😇' },
     { label: 'Loved', emoji: '🥰' },
     { label: 'Excited', emoji: '🤩' },
-    { label: 'Crazy', emoji: '🤪' },
     { label: 'Thankful', emoji: '🙏' },
-    { label: 'Proud', emoji: '😎' }
+    { label: 'Cool', emoji: '😎' }
   ];
 
   const handleImageSelect = (e) => {
@@ -57,26 +58,33 @@ export default function PostComposer({
 
   return (
     <>
-      {/* Feed Composer Trigger Card */}
+      {/* Feed Composer Trigger Card with Matching CSS */}
       <div className="composer-card">
         <div className="composer-top">
-          <img 
-            src={currentUser.avatar} 
-            alt={currentUser.name} 
-            className="composer-avatar"
-            onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
-          />
-          <button 
-            className="composer-input-btn"
+          <div className="avatar-wrapper">
+            <img 
+              src={currentUser.avatar || defaultAvatar} 
+              alt={currentUser.name} 
+              className="avatar-img"
+              onError={(e) => { e.target.src = defaultAvatar; }}
+            />
+            <div className="avatar-online-dot" />
+          </div>
+
+          <div 
+            className="composer-input-fake"
             onClick={onOpenModal}
           >
             What's on your mind, {currentUser.name?.split(' ')[0] || 'Friend'}?
-          </button>
+          </div>
         </div>
+
+        <div className="composer-divider" />
 
         <div className="composer-actions">
           <button 
-            className="composer-action-btn"
+            type="button"
+            className="composer-btn"
             onClick={() => {
               onOpenModal();
               setTimeout(() => fileInputRef.current?.click(), 100);
@@ -87,7 +95,8 @@ export default function PostComposer({
           </button>
 
           <button 
-            className="composer-action-btn"
+            type="button"
+            className="composer-btn"
             onClick={() => {
               onOpenModal();
               setShowFeelingsPicker(true);
@@ -98,7 +107,8 @@ export default function PostComposer({
           </button>
 
           <button 
-            className="composer-action-btn"
+            type="button"
+            className="composer-btn"
             onClick={onOpenModal}
           >
             <Video size={18} color="#f3425f" />
@@ -107,7 +117,7 @@ export default function PostComposer({
         </div>
       </div>
 
-      {/* Fullscreen / Interactive Modal Composer */}
+      {/* Fullscreen Interactive Modal Composer */}
       {isOpenModal && (
         <div className="modal-backdrop" onClick={onCloseModal}>
           <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
@@ -120,13 +130,13 @@ export default function PostComposer({
 
             <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
               <div className="modal-body">
-                {/* Author Details & Privacy Selector */}
+                {/* Author Details */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                   <img 
-                    src={currentUser.avatar} 
+                    src={currentUser.avatar || defaultAvatar} 
                     alt={currentUser.name} 
                     style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
-                    onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
+                    onError={(e) => { e.target.src = defaultAvatar; }}
                   />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -155,7 +165,7 @@ export default function PostComposer({
                   </div>
                 </div>
 
-                {/* Text Input Area */}
+                {/* Text Area */}
                 <textarea
                   className="modal-textarea"
                   placeholder={`What's on your mind, ${currentUser.name?.split(' ')[0] || 'Friend'}?`}
@@ -165,13 +175,13 @@ export default function PostComposer({
                   rows={4}
                 />
 
-                {/* Selected Image Preview */}
+                {/* Photo Preview */}
                 {selectedImage && (
                   <div style={{ position: 'relative', marginTop: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                     <img 
                       src={selectedImage} 
                       alt="Uploaded preview" 
-                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover' }} 
+                      style={{ width: '100%', maxHeight: 220, objectFit: 'cover' }} 
                     />
                     <button
                       type="button"
@@ -197,7 +207,7 @@ export default function PostComposer({
                   </div>
                 )}
 
-                {/* Feelings Picker Grid */}
+                {/* Feelings Picker */}
                 {showFeelingsPicker && (
                   <div style={{ marginTop: 12, padding: 10, backgroundColor: 'var(--bg-input)', borderRadius: 10 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>
@@ -242,7 +252,7 @@ export default function PostComposer({
                   style={{ display: 'none' }}
                 />
 
-                {/* Add to Post Quick Toolbar */}
+                {/* Add to Post Toolbar */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',

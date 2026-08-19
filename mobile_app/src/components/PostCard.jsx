@@ -14,11 +14,12 @@ const REACTION_CONFIG = {
   angry: { label: 'Angry', icon: '😡', color: '#e41e3f', class: 'reacted-angry' },
 };
 
+const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z' clip-rule='evenodd'/%3E%3C/svg%3E";
+
 export default function PostCard({ post, onReact, onAddComment, currentUser }) {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [commentInput, setCommentInput] = useState('');
-  const [showShareModal, setShowShareModal] = useState(false);
 
   const totalReactions = Object.values(post.reactions || {}).reduce((a, b) => a + b, 0) + (post.userReaction ? 1 : 0);
 
@@ -29,7 +30,7 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
 
   const handleQuickLike = () => {
     if (post.userReaction) {
-      onReact(post.id, null); // remove reaction
+      onReact(post.id, null);
     } else {
       onReact(post.id, 'like');
     }
@@ -43,7 +44,7 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
       id: `c_${Date.now()}`,
       author: {
         name: currentUser.name,
-        avatar: currentUser.avatar
+        avatar: currentUser.avatar || defaultAvatar
       },
       text: commentInput,
       timeAgo: 'Just now',
@@ -58,32 +59,19 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
 
   return (
     <article className="post-card">
-      {/* Post Header */}
       {/* Post Author Header */}
       <div className="post-header">
         <div className="post-author-info">
           <img 
-            src={post.author.avatar} 
+            src={post.author.avatar || defaultAvatar} 
             alt={post.author.name} 
             style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} 
-            onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
+            onError={(e) => { e.target.src = defaultAvatar; }}
           />
           <div>
             <div className="post-author-name">
               <span>{post.author.name}</span>
               {post.author.verified && <CheckCircle2 size={15} color="#1877f2" fill="#1877f2" stroke="#fff" />}
-              {post.author.badge && (
-                <span style={{ 
-                  fontSize: 10, 
-                  backgroundColor: 'var(--primary-light)', 
-                  color: 'var(--primary)', 
-                  padding: '1px 6px', 
-                  borderRadius: 6,
-                  fontWeight: 600
-                }}>
-                  {post.author.badge}
-                </span>
-              )}
             </div>
             <div className="post-meta">
               <span>{post.timeAgo}</span>
@@ -98,25 +86,34 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
         </button>
       </div>
 
-      {/* Post Content */}
-      <div className="post-content">
-        {post.content}
-      </div>
+      {/* Post Content Text */}
+      {post.content && (
+        <div className="post-content">
+          {post.content}
+        </div>
+      )}
 
-      {/* Post Media / Image */}
+      {/* Post Media Attachment */}
       {(post.image || (post.media && post.media.length > 0)) && (
-        <div className="post-media-grid" style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 8, width: '100%', overflow: 'hidden', backgroundColor: 'var(--bg-main)' }}>
           {post.image ? (
             <img 
               src={post.image} 
               alt="Post attachment" 
               loading="lazy" 
-              style={{ width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 8 }}
+              style={{ width: '100%', maxHeight: 480, objectFit: 'cover', display: 'block' }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           ) : (
             post.media.map((imgUrl, i) => (
-              <img key={i} src={imgUrl} alt="Post content" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />
+              <img 
+                key={i} 
+                src={imgUrl} 
+                alt="Post content" 
+                loading="lazy" 
+                style={{ width: '100%', maxHeight: 480, objectFit: 'cover', display: 'block' }}
+                onError={(e) => { e.target.style.display = 'none'; }} 
+              />
             ))
           )}
         </div>
@@ -157,33 +154,29 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
               onClick={() => handleSelectReaction(type)}
               title={config.label}
             >
-              {config.icon}
+              <span>{config.icon}</span>
             </button>
           ))}
         </div>
       )}
 
-      {/* Action Buttons Bar */}
+      {/* Post Actions Bar */}
       <div className="post-actions-bar">
-        <button
-          className={`action-bar-btn ${currentReactionInfo ? currentReactionInfo.class : ''}`}
+        <button 
+          className={`post-action-btn ${currentReactionInfo ? currentReactionInfo.class : ''}`}
           onClick={handleQuickLike}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setShowReactionPicker(!showReactionPicker);
-          }}
+          onMouseEnter={() => setShowReactionPicker(true)}
           onTouchStart={() => {
             const timer = setTimeout(() => setShowReactionPicker(true), 400);
-            window._reactTimer = timer;
-          }}
-          onTouchEnd={() => {
-            if (window._reactTimer) clearTimeout(window._reactTimer);
+            return () => clearTimeout(timer);
           }}
         >
           {currentReactionInfo ? (
             <>
-              <span style={{ fontSize: 16 }}>{currentReactionInfo.icon}</span>
-              <span>{currentReactionInfo.label}</span>
+              <span style={{ fontSize: 18 }}>{currentReactionInfo.icon}</span>
+              <span style={{ color: currentReactionInfo.color, fontWeight: 700 }}>
+                {currentReactionInfo.label}
+              </span>
             </>
           ) : (
             <>
@@ -194,7 +187,7 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
         </button>
 
         <button 
-          className="action-bar-btn"
+          className="post-action-btn"
           onClick={() => setShowCommentsModal(true)}
         >
           <MessageSquare size={18} />
@@ -202,151 +195,105 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
         </button>
 
         <button 
-          className="action-bar-btn"
-          onClick={() => setShowShareModal(true)}
+          className="post-action-btn"
+          onClick={() => alert('Post link copied to clipboard! 🔗✨')}
         >
           <Share2 size={18} />
           <span>Share</span>
         </button>
       </div>
 
-      {/* Comments Drawer Modal */}
+      {/* Embedded Quick Comments Preview */}
+      {post.comments && post.comments.length > 0 && (
+        <div className="post-comments-preview">
+          {post.comments.slice(-2).map((c) => (
+            <div key={c.id} className="comment-bubble-wrapper">
+              <img 
+                src={c.author?.avatar || c.avatar || defaultAvatar} 
+                alt="Commenter" 
+                className="comment-avatar"
+                onError={(e) => { e.target.src = defaultAvatar; }}
+              />
+              <div className="comment-bubble">
+                <span className="comment-author-name">{c.author?.name || c.user || 'Member'}</span>
+                <p className="comment-text">{c.text}</p>
+              </div>
+            </div>
+          ))}
+
+          {post.comments.length > 2 && (
+            <button 
+              className="view-all-comments-btn"
+              onClick={() => setShowCommentsModal(true)}
+            >
+              View all {post.comments.length} comments
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Full Comments Sheet Modal */}
       {showCommentsModal && (
-        <div className="modal-overlay" onClick={() => setShowCommentsModal(false)}>
-          <div 
-            className="modal-bottom-sheet" 
-            style={{ height: '70vh' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="modal-backdrop" onClick={() => setShowCommentsModal(false)}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Comments ({post.comments?.length || 0})</h3>
-              <button 
-                className="icon-btn" 
-                style={{ width: 32, height: 32 }} 
-                onClick={() => setShowCommentsModal(false)}
-              >
-                <X size={18} />
+              <span className="modal-title">Comments</span>
+              <button className="icon-btn" onClick={() => setShowCommentsModal(false)}>
+                <X size={20} />
               </button>
             </div>
 
-            {/* Comments List */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {post.comments && post.comments.length > 0 ? (
-                post.comments.map((comment) => (
-                  <div key={comment.id} style={{ display: 'flex', gap: 10 }}>
+                post.comments.map((c) => (
+                  <div key={c.id} className="comment-bubble-wrapper">
                     <img 
-                      src={comment.author.avatar} 
-                      alt={comment.author.name} 
-                      style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} 
+                      src={c.author?.avatar || c.avatar || defaultAvatar} 
+                      alt="Commenter" 
+                      className="comment-avatar" 
+                      onError={(e) => { e.target.src = defaultAvatar; }}
                     />
                     <div style={{ flex: 1 }}>
-                      <div style={{ 
-                        backgroundColor: 'var(--bg-input)', 
-                        padding: '8px 12px', 
-                        borderRadius: 14,
-                        display: 'inline-block',
-                        maxWidth: '92%'
-                      }}>
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>{comment.author.name}</div>
-                        <div style={{ fontSize: 13.5, marginTop: 2 }}>{comment.text}</div>
+                      <div className="comment-bubble">
+                        <span className="comment-author-name">{c.author?.name || c.user || 'Member'}</span>
+                        <p className="comment-text">{c.text}</p>
                       </div>
-                      <div style={{ display: 'flex', gap: 14, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, marginLeft: 8 }}>
-                        <span>{comment.timeAgo}</span>
-                        <span style={{ fontWeight: 600, cursor: 'pointer', color: 'var(--text-secondary)' }}>Like</span>
-                        <span style={{ fontWeight: 600, cursor: 'pointer', color: 'var(--text-secondary)' }}>Reply</span>
+                      <div className="comment-meta-actions">
+                        <span>{c.timeAgo || 'Just now'}</span>
+                        <button>Like</button>
+                        <button>Reply</button>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>
-                  No comments yet. Be the first to comment! 💬
+                <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>
+                  No comments yet. Be the first to say something! 💬
                 </div>
               )}
             </div>
 
-            {/* Post Comment Input Bar */}
-            <form onSubmit={handlePostComment} style={{ 
-              padding: '10px 16px calc(var(--safe-bottom) + 10px) 16px', 
-              borderTop: '1px solid var(--border-color)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}>
+            {/* Comment Input Footer */}
+            <form onSubmit={handlePostComment} className="comment-composer-footer">
               <img 
-                src={currentUser.avatar} 
+                src={currentUser.avatar || defaultAvatar} 
                 alt="Me" 
-                style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} 
+                style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} 
+                onError={(e) => { e.target.src = defaultAvatar; }}
               />
-              <input
-                type="text"
-                placeholder="Write a comment..."
-                value={commentInput}
-                onChange={(e) => setCommentInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  backgroundColor: 'var(--bg-input)',
-                  border: 'none',
-                  borderRadius: 20,
-                  padding: '8px 14px',
-                  color: 'var(--text-primary)',
-                  fontSize: 13.5,
-                  outline: 'none'
-                }}
-              />
-              <button 
-                type="submit" 
-                disabled={!commentInput.trim()}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: commentInput.trim() ? 'var(--primary)' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 6
-                }}
-              >
-                <Send size={18} />
-              </button>
+              <div className="comment-input-box">
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  autoFocus
+                />
+                <button type="submit" disabled={!commentInput.trim()}>
+                  <Send size={16} />
+                </button>
+              </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Share Modal */}
-      {showShareModal && (
-        <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
-          <div 
-            className="modal-bottom-sheet" 
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h3 className="modal-title">Share Post</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setShowShareModal(false)}>
-                <X size={18} />
-              </button>
-            </div>
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button 
-                className="btn-primary" 
-                onClick={() => {
-                  alert('Shared to your Feed successfully! 🎉');
-                  setShowShareModal(false);
-                }}
-              >
-                Share to Feed Now
-              </button>
-              <button 
-                className="composer-input-fake" 
-                style={{ textAlign: 'center', color: 'var(--text-primary)' }}
-                onClick={() => {
-                  navigator.clipboard?.writeText(window.location.href);
-                  alert('Link copied to clipboard! 📋');
-                  setShowShareModal(false);
-                }}
-              >
-                Copy Post Link
-              </button>
-            </div>
           </div>
         </div>
       )}
