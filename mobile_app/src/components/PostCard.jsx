@@ -59,12 +59,14 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
   return (
     <article className="post-card">
       {/* Post Header */}
+      {/* Post Author Header */}
       <div className="post-header">
         <div className="post-author-info">
           <img 
             src={post.author.avatar} 
             alt={post.author.name} 
             style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} 
+            onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
           />
           <div>
             <div className="post-author-name">
@@ -101,12 +103,22 @@ export default function PostCard({ post, onReact, onAddComment, currentUser }) {
         {post.content}
       </div>
 
-      {/* Post Media */}
-      {post.media && post.media.length > 0 && (
-        <div className="post-media-grid">
-          {post.media.map((imgUrl, i) => (
-            <img key={i} src={imgUrl} alt="Post content" loading="lazy" />
-          ))}
+      {/* Post Media / Image */}
+      {(post.image || (post.media && post.media.length > 0)) && (
+        <div className="post-media-grid" style={{ marginTop: 8 }}>
+          {post.image ? (
+            <img 
+              src={post.image} 
+              alt="Post attachment" 
+              loading="lazy" 
+              style={{ width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 8 }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          ) : (
+            post.media.map((imgUrl, i) => (
+              <img key={i} src={imgUrl} alt="Post content" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />
+            ))
+          )}
         </div>
       )}
 

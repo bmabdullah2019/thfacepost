@@ -16,6 +16,9 @@ import {
   fetchFeedPosts,
   fetchLiveStories,
   fetchLiveReels,
+  fetchLiveChats,
+  sendLiveChatMessage,
+  fetchLiveNotifications,
   createLivePost,
   reactLivePost,
   commentLivePost,
@@ -41,7 +44,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Data States (Loaded dynamically with local persistence)
+  // Data States (Loaded dynamically from database with local persistence)
   const [stories, setStories] = useState(() => {
     const saved = localStorage.getItem('facepost_stories');
     return saved ? JSON.parse(saved) : initialStories;
@@ -73,18 +76,19 @@ export default function App() {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
 
-  // Load Live Data from Server on mount or user login
+  // Load ALL Live Data across all tabs from Server on mount or user login
   useEffect(() => {
     if (!currentUser) return;
 
     let isMounted = true;
-    async function loadLiveServerData() {
+    async function loadAllLiveServerData() {
       setIsSyncing(true);
       try {
-        const [livePosts, liveStories, liveReels, liveProfile] = await Promise.all([
+        const [livePosts, liveStories, liveChats, liveNotifs, liveProfile] = await Promise.all([
           fetchFeedPosts(),
           fetchLiveStories(),
-          fetchLiveReels(),
+          fetchLiveChats(currentUser.username),
+          fetchLiveNotifications(currentUser.username),
           fetchUserProfile(currentUser.username)
         ]);
 
@@ -96,8 +100,11 @@ export default function App() {
         if (liveStories && Array.isArray(liveStories) && liveStories.length > 0) {
           setStories(liveStories);
         }
-        if (liveReels && Array.isArray(liveReels) && liveReels.length > 0) {
-          setReels(liveReels);
+        if (liveChats && Array.isArray(liveChats) && liveChats.length > 0) {
+          setChats(liveChats);
+        }
+        if (liveNotifs && Array.isArray(liveNotifs) && liveNotifs.length > 0) {
+          setNotifications(liveNotifs);
         }
         if (liveProfile) {
           setCurrentUser(prev => ({ ...prev, ...liveProfile }));
@@ -109,7 +116,7 @@ export default function App() {
       }
     }
 
-    loadLiveServerData();
+    loadAllLiveServerData();
     return () => { isMounted = false; };
   }, [currentUser?.username]);
 
@@ -162,7 +169,6 @@ export default function App() {
     setActiveTab('feed');
   };
 
-  // If NOT logged in, display the Facebook-style AuthScreen
   if (!currentUser) {
     return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
   }
@@ -171,14 +177,12 @@ export default function App() {
   const unreadNotifCount = notifications.filter(n => n.unread).length;
   const unreadMsgCount = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
-  // App Event Handlers
   const handleToggleTheme = () => {
     setIsDarkMode(!isDarkMode);
   };
 
   // Dynamic Live Post Creator
   const handleAddNewPost = async (newPostData) => {
-    // 1. Instantly update UI for snappy native feel
     const optimisticPost = {
       ...newPostData,
       author: {
@@ -191,14 +195,13 @@ export default function App() {
     };
     setPosts([optimisticPost, ...posts]);
 
-    // 2. Publish to live server
     try {
       const serverPost = await createLivePost(newPostData.content, currentUser.username);
       if (serverPost) {
         setPosts(prev => [serverPost, ...prev.filter(p => p.id !== optimisticPost.id)]);
       }
     } catch (err) {
-      console.warn('Background live post failed, retained locally:', err);
+      console.warn('Live post creation error:', err);
     }
   };
 
@@ -228,13 +231,11 @@ export default function App() {
       })
     );
 
-    // Sync to server in background
     reactLivePost(postId, reactionType, currentUser.username);
   };
 
   // Dynamic Comment Handler
   const handleAddComment = async (postId, newComment) => {
-    // 1. Optimistic UI update
     setPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
@@ -248,7 +249,6 @@ export default function App() {
       })
     );
 
-    // 2. Sync to server in background
     commentLivePost(postId, newComment.text, currentUser.username);
   };
 
@@ -267,7 +267,8 @@ export default function App() {
     );
   };
 
-  const handleSendMessage = (chatId, message) => {
+  // Dynamic Live Chat Messaging
+  const handleSendMessage = async (chatId, message) => {
     setChats(prevChats =>
       prevChats.map(chat => {
         if (chat.id === chatId) {
@@ -284,6 +285,11 @@ export default function App() {
         return chat;
       })
     );
+
+    const targetChat = chats.find(c => c.id === chatId);
+    if (targetChat && targetChat.user) {
+      sendLiveChatMessage(currentUser.username, targetChat.user.username, message.text);
+    }
   };
 
   const handleSelectChat = (chatId) => {
@@ -297,7 +303,7 @@ export default function App() {
 
   const handleAcceptFriendRequest = (notifId) => {
     setNotifications(prev => prev.filter(n => n.id !== notifId));
-    alert('Friend request confirmed! Added to your friend list. 🤝🎉');
+    alert('Friend request confirmed! 🤝🎉');
   };
 
   const handleAddStory = () => {

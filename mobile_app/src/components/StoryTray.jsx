@@ -32,6 +32,7 @@ export default function StoryTray({ stories, currentUser, onSelectStory, onAddSt
               alt="Story"
               className="story-bg-img"
               loading="lazy"
+              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80'; }}
             />
             <div className="story-gradient" />
             
@@ -40,6 +41,7 @@ export default function StoryTray({ stories, currentUser, onSelectStory, onAddSt
                 src={story.user.avatar}
                 alt={story.user.name}
                 className="story-user-img"
+                onError={(e) => { e.target.src = 'https://thefacepost.com/themes/flavor/images/user-red.png'; }}
               />
             </div>
 
