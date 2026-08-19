@@ -1,121 +1,151 @@
 /**
- * The FacePost API Client
- * Dynamically communicates with the live backend (https://thefacepost.com/api/v1.0)
- * while maintaining instant native performance and offline cache.
+ * The FacePost Native API Client
+ * Uses CapacitorHttp for native Android HTTP requests (bypassing browser CORS sandbox)
+ * and seamless fallback to standard fetch.
  */
+import { CapacitorHttp } from '@capacitor/core';
 
 const API_BASE_URL = 'https://thefacepost.com/api/v1.0';
 
 export async function loginWithServer(username, password) {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
+    const options = {
+      url: `${API_BASE_URL}/auth/login`,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ username, password })
-    });
+      data: { username, password }
+    };
 
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (parseErr) {
-      // Server returned HTML (e.g. redirect or 404 because API component not yet uploaded/enabled on cPanel)
-      return {
-        status: 'error',
-        message: 'TheFacePost API is not yet activated on the live server (https://thefacepost.com). Please upload the components/TheFacePostApi folder to cPanel and enable it.'
-      };
+    const response = await CapacitorHttp.post(options);
+    let data = response.data;
+
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+        // Response is HTML from server
+        return {
+          status: 'error',
+          message: 'TheFacePostApi component is not yet uploaded to the live server (thefacepost.com). Please upload the TheFacePostApi component to cPanel to enable live login.'
+        };
+      }
     }
 
-    return data;
-  } catch (err) {
-    console.warn('Login request failed:', err);
+    if (response.status === 200 && data && data.status === 'success') {
+      return data;
+    }
+
     return {
       status: 'error',
-      message: 'Network connection failed. Please check your internet connection or server availability.'
+      message: data?.message || 'Invalid username or password. Please check your credentials.'
+    };
+  } catch (err) {
+    console.warn('Native Login request error:', err);
+    return {
+      status: 'error',
+      message: 'Network connection failed. Please check your internet connection.'
     };
   }
 }
 
 export async function registerWithServer(userData) {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
+    const options = {
+      url: `${API_BASE_URL}/auth/register`,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify(userData)
-    });
+      data: userData
+    };
 
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (parseErr) {
-      return {
-        status: 'error',
-        message: 'TheFacePost API is not yet active on https://thefacepost.com. Please upload components/TheFacePostApi to cPanel.'
-      };
+    const response = await CapacitorHttp.post(options);
+    let data = response.data;
+
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+        return {
+          status: 'error',
+          message: 'TheFacePostApi is not active on the live server yet. Please upload the component to cPanel.'
+        };
+      }
     }
 
-    return data;
-  } catch (err) {
-    console.warn('Registration request failed:', err);
+    if (response.status === 200 && data && data.status === 'success') {
+      return data;
+    }
+
     return {
       status: 'error',
-      message: 'Network connection failed. Please check your internet connection and try again.'
+      message: data?.message || 'Registration failed. Please try again.'
+    };
+  } catch (err) {
+    console.warn('Native Registration request error:', err);
+    return {
+      status: 'error',
+      message: 'Network connection failed. Please check your internet connection.'
     };
   }
 }
 
 export async function forgotPasswordWithServer(identifier) {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/forgot_password`, {
-      method: 'POST',
+    const options = {
+      url: `${API_BASE_URL}/auth/forgot_password`,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ email: identifier, username: identifier })
-    });
+      data: { email: identifier, username: identifier }
+    };
 
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      return {
-        status: 'error',
-        message: 'The API is not reachable or responded unexpectedly.'
-      };
+    const response = await CapacitorHttp.post(options);
+    let data = response.data;
+
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+        return {
+          status: 'error',
+          message: 'The API is not active on the live server yet.'
+        };
+      }
     }
-    return data;
+
+    if (response.status === 200 && data && data.status === 'success') {
+      return data;
+    }
+
+    return {
+      status: 'error',
+      message: data?.message || 'No account found with that email or username.'
+    };
   } catch (err) {
     return {
       status: 'error',
-      message: 'Network connection failed. Please try again.'
+      message: 'Network connection failed. Please check your internet connection.'
     };
   }
 }
 
 export async function fetchFeedPosts() {
   try {
-    const res = await fetch(`${API_BASE_URL}/feed`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-cache'
-    });
-    if (res.ok) {
-      const text = await res.text();
-      try {
-        const data = JSON.parse(text);
-        if (data && data.status === 'success' && Array.isArray(data.posts)) {
-          return data.posts;
-        }
-      } catch (e) {}
+    const options = {
+      url: `${API_BASE_URL}/feed`,
+      headers: { 'Accept': 'application/json' }
+    };
+    const response = await CapacitorHttp.get(options);
+    let data = response.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch (e) {}
+    }
+    if (data && data.status === 'success' && Array.isArray(data.posts)) {
+      return data.posts;
     }
   } catch (err) {
     console.warn('Live feed fetch failed, utilizing cached feed:', err);
@@ -125,18 +155,17 @@ export async function fetchFeedPosts() {
 
 export async function fetchLiveStories() {
   try {
-    const res = await fetch(`${API_BASE_URL}/stories`, {
-      method: 'GET',
+    const options = {
+      url: `${API_BASE_URL}/stories`,
       headers: { 'Accept': 'application/json' }
-    });
-    if (res.ok) {
-      const text = await res.text();
-      try {
-        const data = JSON.parse(text);
-        if (data && data.status === 'success' && Array.isArray(data.stories)) {
-          return data.stories;
-        }
-      } catch (e) {}
+    };
+    const response = await CapacitorHttp.get(options);
+    let data = response.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch (e) {}
+    }
+    if (data && data.status === 'success' && Array.isArray(data.stories)) {
+      return data.stories;
     }
   } catch (err) {
     console.warn('Live stories fetch failed, utilizing cached stories:', err);
@@ -146,18 +175,17 @@ export async function fetchLiveStories() {
 
 export async function fetchLiveReels() {
   try {
-    const res = await fetch(`${API_BASE_URL}/reels`, {
-      method: 'GET',
+    const options = {
+      url: `${API_BASE_URL}/reels`,
       headers: { 'Accept': 'application/json' }
-    });
-    if (res.ok) {
-      const text = await res.text();
-      try {
-        const data = JSON.parse(text);
-        if (data && data.status === 'success' && Array.isArray(data.reels)) {
-          return data.reels;
-        }
-      } catch (e) {}
+    };
+    const response = await CapacitorHttp.get(options);
+    let data = response.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch (e) {}
+    }
+    if (data && data.status === 'success' && Array.isArray(data.reels)) {
+      return data.reels;
     }
   } catch (err) {
     console.warn('Live reels fetch failed, utilizing cached reels:', err);
